@@ -3,8 +3,8 @@
 *	Author: Philipp Zschoche, https://zschoche.org
 *
 */
-#ifndef __EXT2_STUCTS_HPP__
-#define __EXT2_STUCTS_HPP__
+#ifndef __EXT2_STRUCTS_HPP__
+#define __EXT2_STRUCTS_HPP__
 
 namespace ext2 {
 namespace detail {
@@ -121,4 +121,4 @@ enum readonly_feature_flags{
 } /* namespace detail */
 } /* namespace ext2 */
 
-#endif /* __EXT2_STUCTS_HPP__ */
+#endif /* __EXT2_STRUCTS_HPP__ */
