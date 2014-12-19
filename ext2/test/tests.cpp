@@ -3,6 +3,7 @@
 
 #include <boost/test/unit_test.hpp>
 #include "host_node.hpp"
+#include "../ext2_structs.hpp"
 #include <fstream>
 #include <iostream>
 
@@ -34,3 +35,27 @@ BOOST_AUTO_TEST_CASE(host_node_test) {
 		BOOST_CHECK(s == "HelASDFxt2!");
 	}
 }
+
+BOOST_AUTO_TEST_CASE(super_block_test) {
+	ext2::detail::super_block firstblock;
+	BOOST_REQUIRE_EQUAL(sizeof(firstblock), 1024);
+}
+
+BOOST_AUTO_TEST_CASE(write_read_superblock_test) {
+	
+	test_node d;
+	ext2::super_block<test_node> test(d,0);
+
+	test.flush();
+
+
+}
+
+
+
+
+
+
+
+
+

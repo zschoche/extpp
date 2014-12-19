@@ -63,4 +63,28 @@ class host_node /* : public iposix::fs::i_fs_node*/ {
 
 };
 
+class test_node /* : public iposix::fs::i_fs_node*/ {
+
+
+	size_t size;
+
+	public:
+
+	uint32_t read(const uint64_t offset, char *buffer, uint32_t length)  {
+		return 0;
+	}
+
+	uint32_t write(const uint64_t offset, const char *buffer, uint32_t length) {
+		std::cout << length << std::endl;
+		return length;
+	}
+
+
+	uint32_t length() const {
+		return size;
+	}
+
+
+
+};
 #endif /* __HOST_NODE_HPP__ */
