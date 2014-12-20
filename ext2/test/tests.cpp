@@ -3,7 +3,8 @@
 
 #include <boost/test/unit_test.hpp>
 #include "host_node.hpp"
-#include "../ext2_structs.hpp"
+#include "../ext2/structs.hpp"
+#include "../ext2/block_device.hpp"
 #include <fstream>
 #include <iostream>
 
@@ -36,18 +37,100 @@ BOOST_AUTO_TEST_CASE(host_node_test) {
 	}
 }
 
-BOOST_AUTO_TEST_CASE(super_block_test) {
-	ext2::detail::super_block firstblock;
-	BOOST_REQUIRE_EQUAL(sizeof(firstblock), 1024);
+BOOST_AUTO_TEST_CASE(superblock_test) {
+	ext2::detail::superblock firstblock;
+	BOOST_REQUIRE_EQUAL(sizeof(firstblock), 236);
 }
 
-BOOST_AUTO_TEST_CASE(write_read_superblock_test) {
+
+struct test_device {
+
+	char data[4096];
+
+	test_device() {
+		std::memset(data, 0, sizeof(data));
+	}
 	
-	test_node d;
-	ext2::super_block<test_node> test(d,0);
+	void write(uint64_t offset, const char* buffer, uint64_t size) {
+		std::memcpy(data + offset, buffer, size);
+	}
 
-	test.flush();
+	void read(uint64_t offset, char* buffer, uint64_t size) {
+		std::memcpy(buffer, data + offset, size);
+	}
 
+};
+
+
+BOOST_AUTO_TEST_CASE(block_device_test) {
+
+	ext2::block_device<test_device> d(5); // block have size of 5 bytes
+	std::string test = "This is a test message.";
+	d.write(0, test.c_str(), test.size()); 
+	BOOST_CHECK(std::string(d.data) == test);
+	char buffer[1024];
+	d.read(0, buffer, test.size());
+	BOOST_CHECK(std::string(buffer) == test);
+
+	
+	d.write(67, test.c_str(), test.size()); 
+	BOOST_CHECK(std::string(&d.data[67]) == test);
+	std::memset(buffer, 0, sizeof(buffer));
+	d.read(67, buffer, test.size());
+	BOOST_CHECK(std::string(buffer) == test);
+
+	test = "asd";
+	d.write(201, test.c_str(), test.size()); 
+	BOOST_CHECK(std::string(&d.data[201]) == test);
+	std::memset(buffer, 0, sizeof(buffer));
+	d.read(201, buffer, test.size());
+	BOOST_CHECK(std::string(buffer) == test);
+}
+
+
+
+BOOST_AUTO_TEST_CASE(read_superblock_test) {
+	
+	host_node image("image.img", 1024*1024*10);
+	ext2::block_device<host_node> image2(128, "image.img", 1024*1024*10); // block have size of 128 bytes
+	auto superblock = ext2::read_superblock(image);
+	auto superblock2 = ext2::read_superblock(image2);
+	BOOST_CHECK(superblock.data == superblock2.data);
+
+	BOOST_REQUIRE_EQUAL(superblock.data.inodes_count, 2560);
+	BOOST_REQUIRE_EQUAL(superblock.data.blocks_count, 10240); 
+	BOOST_REQUIRE_EQUAL(superblock.data.reserved_blocks_count, 512); 
+	BOOST_REQUIRE_EQUAL(superblock.data.free_block_count, 9770); 
+	BOOST_REQUIRE_EQUAL(superblock.data.free_inodes_count, 2540); 
+	BOOST_REQUIRE_EQUAL(superblock.data.super_block_number, 1); 
+	BOOST_REQUIRE_EQUAL(superblock.data.block_size_log, 0); 
+	BOOST_REQUIRE_EQUAL(superblock.data.fragment_size_log, 0); 
+	BOOST_REQUIRE_EQUAL(superblock.data.blocks_per_group, 8192);
+	BOOST_REQUIRE_EQUAL(superblock.data.fragments_per_group, 8192); 
+	BOOST_REQUIRE_EQUAL(superblock.data.inodes_per_group, 1280); 
+	BOOST_REQUIRE_EQUAL(superblock.data.mount_count, 0); 
+	BOOST_REQUIRE_EQUAL(superblock.data.mount_count_max, 65535); 
+	BOOST_REQUIRE_EQUAL(superblock.data.ext2_magic_number, 61267); 
+	BOOST_REQUIRE_EQUAL(superblock.data.file_system_state, 1); 
+	BOOST_REQUIRE_EQUAL(superblock.data.error_behaviour, 1); 
+	BOOST_REQUIRE_EQUAL(superblock.data.rev_level_minor, 0); 
+	BOOST_REQUIRE_EQUAL(superblock.data.check_interval, 0); 
+	BOOST_REQUIRE_EQUAL(superblock.data.os_id, 0); 
+	BOOST_REQUIRE_EQUAL(superblock.data.rev_level_major, 1); 
+	BOOST_REQUIRE_EQUAL(superblock.data.user_id_res_blocks, 0); 
+	BOOST_REQUIRE_EQUAL(superblock.data.group_id_res_blocks, 0); 
+	BOOST_REQUIRE_EQUAL(superblock.data.first_unreserved_inode, 11); 
+	BOOST_REQUIRE_EQUAL(superblock.data.inode_size, 128); 
+	BOOST_REQUIRE_EQUAL(superblock.data.this_partof_group, 0); 
+	BOOST_REQUIRE_EQUAL(superblock.data.features_opt, 56); 
+	BOOST_REQUIRE_EQUAL(superblock.data.features_req, 2); 
+	BOOST_REQUIRE_EQUAL(superblock.data.features_readonly, 1); 
+	BOOST_CHECK(superblock.data.volume_name() == ""); 
+	BOOST_CHECK(superblock.data.mount_path_last() == "/home/pi/test"); 
+	BOOST_REQUIRE_EQUAL(superblock.data.compression_algorithm, 0); 
+	BOOST_REQUIRE_EQUAL(superblock.data.journal_inode, 0); 
+	BOOST_REQUIRE_EQUAL(superblock.data.journal_device, 0); 
+	BOOST_REQUIRE_EQUAL(superblock.data.orphan_list_head, 0); 
 
 }
 
