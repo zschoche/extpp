@@ -1,5 +1,4 @@
-#define BOOST_TEST_DYN_LINK
-#define BOOST_TEST_MODULE Hello
+#define BOOST_TEST_MODULE ext2tests
 // svn test
 
 #include <boost/test/unit_test.hpp>
