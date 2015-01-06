@@ -9,6 +9,11 @@ add_definitions("-fexceptions")
 
 #defines
 #add_definitions(-DBOOST_ASIO_DYN_LINK)
+if(APPLE)
+	message("osx detected")
+else()
+	add_definitions(BOOST_TEST_DYN_LINK)
+endif()
 #tests
 add_executable(host_tests tests.cpp) 
 	    add_custom_target(check DEPENDS host_tests COMMAND ./host_tests)
