@@ -117,8 +117,92 @@ struct super_block {
 	uint32_t journal_inode; // journal inode
 	uint32_t journal_device; // journal device
 	uint32_t orphan_list_head; // head of orphan inode lsit
-	// TODO osdev.org says (unused) for bytes 236 to 1023 here, what to do?
-	char unused[787];
+	char unused[787];	//padding bytes
+};
+
+
+/**
+* a block group descriptor contains information regarding where important data structures for that block group are located.
+*	should be 32 byte long
+*/
+struct group_descriptor{
+
+	uint32_t address_block_bitmap;	//block address of block usage bitmap
+	uint32_t address_inode_bitmap;	//block adress of inode usage bitmap
+	uint32_t address_inode_table;	//starting block address of inode table
+	uint16_t free_blocks;	//number of unallocated blocks in group
+	uint16_t free_inodes;	//number of unallocated inodes in group
+	uint16_t count_directories;	//number of directories
+	uint16_t unused[7];	//padding bytes to get to 32 byte length
+
+};
+
+/**
+*
+*/
+struct inode{
+	
+	uint16_t type;	//type and permissions //TODO make enum
+	uint16_t uid;	//user ID
+	uint32_t size;	//lower 32 bits of size in bytes
+	uint32_t access_time_last;	//last access time (in posix time)
+	uint32_t creation_time;		//creation time (in posix time)
+	uint32_t mod_time;		//last modification time (in posix time)
+	uint32_t del_time;		//last deletion time (in posix time)
+	uint16_t gid;	//group id
+	uint16_t count_hard_link;	//count of hard links (directory entries) to this inode. When this reaches 0, the data blocks are marked as unallocated
+	uint32_t count_sector;	//count of disc sectors (not ext2 blocks) in use by this inode, not counting the actual inode strucutre nor directory entries linking to the inode
+	uint32_t flags;	//flags //TODO make enum
+	union {
+		
+		struct{
+			uint32_t linux_reserved;
+		} specific_linux;
+		struct{
+			uint32_t hurd_translator;
+		} specific_hurd;
+		struct{
+			uint32_t masix_reserved;
+		} specific_masix;
+
+	} system_specific_1; //operating system specific value #1
+	uint32_t block_pointer_direct[12];	//direct block pointers 0-11
+	uint32_t block_pointer_indirect_singly;	//singly indirect block pointer (points to a block that is a list of block pointers to data)
+	uint32_t block_pointer_indirect_doubly; //doubly indirect block pointer (points to a block that is a list of block pointers to singly indirect blocks)
+	uint32_t block_pointer_indirect_triply;	//tripy indirect block pointer (points to a block that is a list of block pointers to doubly indirect blocks)
+	uint32_t number_generation;	//generation number (primarily used for NFS)
+	
+	//the next to are reserved in version 0 of ext2. In version >= 1, they are used for File ACL and filesize (if file) / directory ACL (if directory)
+	uint32_t file_acl;
+	uint32_t dir_acl;
+
+	uint32_t fragment_address;	//block address of fragment
+
+	union {
+		struct {
+			uint8_t fragment_number;	//fragment number
+			uint8_t fragment_size;		//fragment size
+			uint16_t padding;		//reserved
+			uint16_t uid_high;		//high 16 bits of 32-bit user ID
+			uint16_t gid_high;		//high 16 bits of 32-bit group ID
+			uint32_t padding2;		//padding
+		} specific_linux;
+
+		struct {
+			uint8_t fragment_number;	//fragment number
+			uint8_t fragment_size;		//fragment size
+			uint16_t type_high;		//high 16 bits of 32 bit "Type and Permissions" field
+			uint16_t uid_high;		//high 16 bits of 32 bit user ID
+			uint16_t gid_high;		//high 16 bits of 32 bit group ID
+			uint32_t author_id;		//user ID of author (if == 0xFFFFFFFF, the normal user  ID will be used)
+		} specific_hurd;
+
+		struct {
+			uint8_t fragment_number;
+			uint8_t fragment_size;
+			uint8_t res[10];
+		} specific_masix;
+	} system_specific_2;
 };
 
 
