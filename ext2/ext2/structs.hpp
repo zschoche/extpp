@@ -27,9 +27,8 @@ enum file_system_states : uint16_t {
 	file_system_error = 2  // filesytem has errors
 };
 
-template<typename OStream>
-OStream& operator<<(OStream& os, const file_system_states& state) {
-	if(state == file_system_clean) {
+template <typename OStream> OStream &operator<<(OStream &os, const file_system_states &state) {
+	if (state == file_system_clean) {
 		os << "clean";
 	} else {
 		os << "error";
@@ -45,9 +44,8 @@ enum error_handle_methods : uint16_t {
 	error_handle_panic = 3		   // kernel panic
 };
 
-template<typename OStream>
-OStream& operator<<(OStream& os, const error_handle_methods& val) {
-	if(val == error_handle_ignore) {
+template <typename OStream> OStream &operator<<(OStream &os, const error_handle_methods &val) {
+	if (val == error_handle_ignore) {
 		os << "ignore";
 	} else if (val == error_handle_remount_readonly) {
 		os << "remount_readonly";
@@ -65,15 +63,14 @@ enum os_ids : uint32_t {
 	os_freebsd = 3, // FreeBSD
 	os_other = 4    // Other "Lites" BSD4.4-Lite derivatives such as NetBSD, OpenBSD, XNU/Darwin etc.
 };
-template<typename OStream>
-OStream& operator<<(OStream& os, const os_ids& val) {
-	if(val == os_linux) {
+template <typename OStream> OStream &operator<<(OStream &os, const os_ids &val) {
+	if (val == os_linux) {
 		os << "Linux";
 	} else if (val == os_hurd) {
 		os << "GNU HURD";
-	} else if(val == os_masix) {
+	} else if (val == os_masix) {
 		os << "MASIX";
-	} else if(val == os_freebsd) {
+	} else if (val == os_freebsd) {
 		os << "FreeBSD";
 	} else {
 		os << "Other";
@@ -90,8 +87,7 @@ enum opt_feature_flags : uint32_t {
 	opt_feature_can_resize = 0x0010,      // File system can resize itself for larger partitions
 	opt_feature_dir_use_hash = 0x0020     // directories use hash index
 };
-template<typename OStream>
-OStream& operator<<(OStream& os, const opt_feature_flags& val) {
+template <typename OStream> OStream &operator<<(OStream &os, const opt_feature_flags &val) {
 	os << static_cast<const uint32_t>(val);
 	return os;
 }
@@ -102,8 +98,7 @@ enum req_feature_flags : uint32_t {
 	req_feature_replay_journal = 0x0004,   // file system needs to replay its journal
 	req_feature_uses_jornal = 0x0008       // file system uses a journal device
 };
-template<typename OStream>
-OStream& operator<<(OStream& os, const req_feature_flags& val) {
+template <typename OStream> OStream &operator<<(OStream &os, const req_feature_flags &val) {
 	os << static_cast<const uint32_t>(val);
 	return os;
 }
@@ -113,8 +108,7 @@ enum readonly_feature_flags : uint32_t {
 	readonly_feature_filesize_64 = 0x0002, // file sytem uses a 64 bit file size
 	readonly_feature_bin_tree = 0x0004     // directory contents are stored in form of a Binary tree
 };
-template<typename OStream>
-OStream& operator<<(OStream& os, const readonly_feature_flags& val) {
+template <typename OStream> OStream &operator<<(OStream &os, const readonly_feature_flags &val) {
 	os << static_cast<const uint32_t>(val);
 	return os;
 }
@@ -122,19 +116,19 @@ OStream& operator<<(OStream& os, const readonly_feature_flags& val) {
 ** based on wiki page wiki.osdev.org/Ext2
 */
 struct __attribute__((packed)) superblock {
-	uint32_t inodes_count;		      // total number of indes in the system
-	uint32_t blocks_count;		      // total number of blocks in the system
-	uint32_t reserved_blocks_count;       // number of blocks reserverd for superuser
-	uint32_t free_block_count;	    // total number of unallocated blocks
-	uint32_t free_inodes_count;	   // total number of unallocated inodes
-	uint32_t super_block_number;	  // block number of the block containing the superblock
-	uint32_t block_size_log;	      // log2 (block size) -10. (In other words, the number to shift 1024 to the left by to obtain the blcok size
-	uint32_t fragment_size_log;	   // log2 (fragment size) -10. (In other words, the number to shift 1024 to the let by to obtain the fragment size
-	uint32_t blocks_per_group;	    // Number of blocks in each block group
-	uint32_t fragments_per_group;	 // Number of fragments in each block group
-	uint32_t inodes_per_group;	    // NUmer of inodes in each block group
-	uint32_t last_mount_time;	     // last mount time in POSIX time
-	uint32_t last_written_time;	   // last written time in POSIX time
+	uint32_t inode_count;		// total number of indes in the system
+	uint32_t block_count;		// total number of blocks in the system
+	uint32_t reserved_blocks_count; // number of blocks reserverd for superuser
+	uint32_t free_block_count;      // total number of unallocated blocks
+	uint32_t free_inodes_count;     // total number of unallocated inodes
+	uint32_t super_block_number;    // block number of the block containing the superblock
+	uint32_t block_size_log;	// log2 (block size) -10. (In other words, the number to shift 1024 to the left by to obtain the blcok size
+	uint32_t fragment_size_log;     // log2 (fragment size) -10. (In other words, the number to shift 1024 to the let by to obtain the fragment size
+	uint32_t blocks_per_group;      // Number of blocks in each block group
+	uint32_t fragments_per_group;   // Number of fragments in each block group
+	uint32_t inodes_per_group;      // NUmer of inodes in each block group
+	uint32_t last_mount_time;       // last mount time in POSIX time
+	uint32_t last_written_time;     // last written time in POSIX time
 
 	uint16_t mount_count;		      // number of times the volume has been mounted since its last consistency check
 	uint16_t mount_count_max;	     // number of moutns allowed before a consistency check (fsck) must be done
@@ -143,13 +137,13 @@ struct __attribute__((packed)) superblock {
 	error_handle_methods error_behaviour; // tells what to do when error occurs
 	uint16_t rev_level_minor;	     // the minor portion of the version (combine with major version to construct full field)
 
-	uint32_t last_check;		      // POSIX time of last consistency check
-	uint32_t check_interval;	      // the max time (in POSIX time)  between forced consistency checks
-	os_ids os_id;			      // Operating system ID from which the filesystem on thsi volume was created
-	uint32_t rev_level_major;	     // major portion of the version (combine with minor to construct full field)
+	uint32_t last_check;      // POSIX time of last consistency check
+	uint32_t check_interval;  // the max time (in POSIX time)  between forced consistency checks
+	os_ids os_id;		  // Operating system ID from which the filesystem on thsi volume was created
+	uint32_t rev_level_major; // major portion of the version (combine with minor to construct full field)
 
-	uint16_t user_id_res_blocks;	  // User ID that can use reserved blocks
-	uint16_t group_id_res_blocks;	 // groupp ID that can use reserved blocks
+	uint16_t user_id_res_blocks;  // User ID that can use reserved blocks
+	uint16_t group_id_res_blocks; // groupp ID that can use reserved blocks
 
 	/*
 	* Extended Superblock fields
@@ -164,34 +158,31 @@ struct __attribute__((packed)) superblock {
 	req_feature_flags features_req;  // required features present (features that are required to be supported to read or write
 	readonly_feature_flags features_readonly; // features that if not supported, the volume must be mounted read-only //TODO make enum
 	uint32_t file_system_id[4];		  // file system ID (what is output by blkid)
-	private:
-	char _volume_name[16];			  // volume name (C-Style string: characters terminated by a 0 byte)
-	char _mount_path_last[64];		  // path volume was last mounted to (C-style string: characters terminated by a 0 byte)
-	public:
-	uint32_t compression_algorithm;		  // compression algorithm used //TODO make enum
-	uint8_t file_preallocate_blocks;	  // number of blcoks to preallocate for files
-	uint8_t dir_preallocate_blocks;		  // number of blcoks to preallocate for directories
-	uint16_t padding_bytes1;		  // unused
-	uint32_t journal_id[4];			  // journal ID, same style as the file system ID above
-	uint32_t journal_inode;			  // journal inode
-	uint32_t journal_device;		  // journal device
-	uint32_t orphan_list_head;		  // head of orphan inode lsit
+      private:
+	char _volume_name[16];     // volume name (C-Style string: characters terminated by a 0 byte)
+	char _mount_path_last[64]; // path volume was last mounted to (C-style string: characters terminated by a 0 byte)
+      public:
+	uint32_t compression_algorithm;  // compression algorithm used //TODO make enum
+	uint8_t file_preallocate_blocks; // number of blcoks to preallocate for files
+	uint8_t dir_preallocate_blocks;  // number of blcoks to preallocate for directories
+	uint16_t padding_bytes1;	 // unused
+	uint32_t journal_id[4];		 // journal ID, same style as the file system ID above
+	uint32_t journal_inode;		 // journal inode
+	uint32_t journal_device;	 // journal device
+	uint32_t orphan_list_head;       // head of orphan inode lsit
 	// TODO osdev.org says (unused) for bytes 236 to 1023 here, what to do?
 
-	const boost::string_ref volume_name() const {
-		return boost::string_ref(_volume_name);
-	}
+	const boost::string_ref volume_name() const { return boost::string_ref(_volume_name); }
 
-	const boost::string_ref mount_path_last() const {
-		return boost::string_ref(_mount_path_last);
-	}
-	
-
+	const boost::string_ref mount_path_last() const { return boost::string_ref(_mount_path_last); }
+	uint32_t block_group_count() const { return std::ceil(static_cast<float>(block_count) / static_cast<float>(blocks_per_group)); }
+	uint32_t block_size() const { return 1024 << block_size_log; }
+	uint32_t fragment_size() const { return 1024 << fragment_size_log; }
 
 	template <typename OStream> void dump(OStream &os) const {
 		os << "Superblock Dump:\r\n";
-		os << "\tinodes_count: " << inodes_count << "\r\n";
-		os << "\tblocks_count: " << blocks_count << "\r\n";
+		os << "\tinodes_count: " << inode_count << "\r\n";
+		os << "\tblocks_count: " << block_count << "\r\n";
 		os << "\treserved_blocks_count: " << reserved_blocks_count << "\r\n";
 		os << "\tfree_block_count: " << free_block_count << "\r\n";
 		os << "\tfree_inodes_count: " << free_inodes_count << "\r\n";
