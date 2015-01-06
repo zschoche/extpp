@@ -227,112 +227,165 @@ struct __attribute__((packed)) superblock {
 	}
 };
 
+inline bool operator==(const superblock &lhs, const superblock &rhs) {
+	return std::strncmp(reinterpret_cast<const char *>(&lhs), reinterpret_cast<const char *>(&rhs), sizeof(superblock)) == 0;
+}
 
 /**
 * a block group descriptor contains information regarding where important data structures for that block group are located.
 *	should be 32 byte long
 */
-struct group_descriptor{
+struct __attribute__((packed)) group_descriptor {
+	uint32_t address_block_bitmap; // block address of block usage bitmap
+	uint32_t address_inode_bitmap; // block adress of inode usage bitmap
+	uint32_t address_inode_table;  // starting block address of inode table
+	uint16_t free_blocks;	  // number of unallocated blocks in group
+	uint16_t free_inodes;	  // number of unallocated inodes in group
+	uint16_t count_directories;    // number of directories
+	uint8_t unused[14];	    // padding bytes to get to 32 byte length
 
-	uint32_t address_block_bitmap;	//block address of block usage bitmap
-	uint32_t address_inode_bitmap;	//block adress of inode usage bitmap
-	uint32_t address_inode_table;	//starting block address of inode table
-	uint16_t free_blocks;	//number of unallocated blocks in group
-	uint16_t free_inodes;	//number of unallocated inodes in group
-	uint16_t count_directories;	//number of directories
-	uint16_t unused[7];	//padding bytes to get to 32 byte length
+	template <typename OStream> OStream& dump(OStream &os) const {
+		os << "Group Descriptor Dump:" << std::endl;
+		os << "\taddress_block_bitmap: " << address_block_bitmap << std::endl;
+		os << "\taddress_inode_bitmap: " << address_inode_bitmap << std::endl;
+		os << "\taddress_inode_table: " << address_inode_table << std::endl;
+		os << "\tfree_blocks: " << free_blocks << std::endl;
+		os << "\tfree_inodes: " << free_inodes << std::endl;
+		os << "\tcount_directorie: " << count_directories << std::endl;
+		return os;
+	}
+};
 
+namespace os {
+enum specific_value_1 : uint32_t {
+	LINUX, // TODO: whats are the values?
+	HURD,
+	MASIX
+};
+
+namespace linux {
+struct __attribute__((packed)) specific_value_2 {
+	uint8_t fragment_number; // fragment number
+	uint8_t fragment_size;   // fragment size
+	uint16_t padding;	// reserved
+	uint16_t uid_high;       // high 16 bits of 32-bit user ID
+	uint16_t gid_high;       // high 16 bits of 32-bit group ID
+	uint32_t padding2;       // padding
+};
+} /* namespace linux */
+
+namespace hurd {
+struct __attribute__((packed)) specific_value_2 {
+	uint8_t fragment_number; // fragment number
+	uint8_t fragment_size;   // fragment size
+	uint16_t type_high;      // high 16 bits of 32 bit "Type and Permissions" field
+	uint16_t uid_high;       // high 16 bits of 32 bit user ID
+	uint16_t gid_high;       // high 16 bits of 32 bit group ID
+	uint32_t author_id;      // user ID of author (if == 0xFFFFFFFF, the normal user  ID will be used)
+};
+} /* namespace hurd */
+
+namespace masix {
+struct __attribute__((packed)) specific_value_2 {
+	uint8_t fragment_number;
+	uint8_t fragment_size;
+	uint8_t res[10];
+};
+} /* namespace masix */
+
+} /* namespace os */
+
+enum inode_types : uint16_t {
+	FIFO = 0x1000,
+	CHARACTER_DEVICE = 0x2000,
+	DIRECTORY = 0x4000,
+	BLOCK_DEVICE = 0x6000,
+	REGULAR_FILE = 0x8000,
+	SYMBOLIC_LINK = 0xA000,
+	UNIX_SOCKET = 0xC000
+};
+
+enum inode_flags : uint32_t {
+	SECURE_DELETION = 0x00000001,  /* Secure deletion (not used) */
+	COPY = 0x00000002,	     /* Keep a copy of data when deleted (not used) */
+	COMPRESSION = 0x00000004,      /* File compression (not used) */
+	SYNCHRONOUS = 0x00000008,      /* Synchronous updates—new data is written immediately to disk */
+	IMMUTABLE = 0x00000010,	/* Immutable file (content cannot be changed) */
+	APPEND = 0x00000020,	   /* Append only */
+	NO_DUMP = 0x00000040,	  /* File is not included in 'dump' command */
+	NO_LAST_ACCESSED = 0x00000080, /* Last accessed time should not updated */
+	HASH_DIR = 0x00010000,	 /* Hash indexed directory */
+	AFS_DIR = 0x00020000,	  /* AFS directory */
+	JOURNAL = 0x00040000	   /* Journal file data */
 };
 
 /**
 *
 */
-struct inode{
-	
-	uint16_t type;	//type and permissions //TODO make enum
-	uint16_t uid;	//user ID
-	uint32_t size;	//lower 32 bits of size in bytes
-	uint32_t access_time_last;	//last access time (in posix time)
-	uint32_t creation_time;		//creation time (in posix time)
-	uint32_t mod_time;		//last modification time (in posix time)
-	uint32_t del_time;		//last deletion time (in posix time)
-	uint16_t gid;	//group id
-	uint16_t count_hard_link;	//count of hard links (directory entries) to this inode. When this reaches 0, the data blocks are marked as unallocated
-	uint32_t count_sector;	//count of disc sectors (not ext2 blocks) in use by this inode, not counting the actual inode strucutre nor directory entries linking to the inode
-	uint32_t flags;	//flags //TODO make enum
-	union {
-		
-		struct{
-			uint32_t linux_reserved;
-		} specific_linux;
-		struct{
-			uint32_t hurd_translator;
-		} specific_hurd;
-		struct{
-			uint32_t masix_reserved;
-		} specific_masix;
+struct __attribute__((packed)) inode {
 
-	} system_specific_1; //operating system specific value #1
-	uint32_t block_pointer_direct[12];	//direct block pointers 0-11
-	uint32_t block_pointer_indirect_singly;	//singly indirect block pointer (points to a block that is a list of block pointers to data)
-	uint32_t block_pointer_indirect_doubly; //doubly indirect block pointer (points to a block that is a list of block pointers to singly indirect blocks)
-	uint32_t block_pointer_indirect_triply;	//tripy indirect block pointer (points to a block that is a list of block pointers to doubly indirect blocks)
-	uint32_t number_generation;	//generation number (primarily used for NFS)
-	
-	//the next to are reserved in version 0 of ext2. In version >= 1, they are used for File ACL and filesize (if file) / directory ACL (if directory)
+	inode_types type; // type and permissions
+	uint16_t uid;     // user ID
+
+	uint32_t size;		   // lower 32 bits of size in bytes
+	uint32_t access_time_last; // last access time (in posix time)
+	uint32_t creation_time;    // creation time (in posix time)
+	uint32_t mod_time;	 // last modification time (in posix time)
+	uint32_t del_time;	 // last deletion time (in posix time)
+
+	uint16_t gid;		  // group id
+	uint16_t count_hard_link; // count of hard links (directory entries) to this inode. When this reaches 0, the data blocks are marked as unallocated
+
+	uint32_t count_sector; // count of disc sectors (not ext2 blocks) in use by this inode, not counting the actual inode strucutre nor directory entries
+			       // linking to the inode
+	uint32_t flags;	// flags
+	os::specific_value_1 os_specific_1; // operating system specific value #1
+
+	uint32_t block_pointer_direct[12];  // direct block pointers 0-11
+	uint32_t block_pointer_indirect[3]; // indirect block pointers (points to a block that is a list of block pointers to data)
+
+	uint32_t number_generation; // generation number (primarily used for NFS)
+	// the next to are reserved in version 0 of ext2. In version >= 1, they are used for File ACL and filesize (if file) / directory ACL (if directory)
 	uint32_t file_acl;
 	uint32_t dir_acl;
-
-	uint32_t fragment_address;	//block address of fragment
-
+	uint32_t fragment_address; // block address of fragment
 	union {
-		struct {
-			uint8_t fragment_number;	//fragment number
-			uint8_t fragment_size;		//fragment size
-			uint16_t padding;		//reserved
-			uint16_t uid_high;		//high 16 bits of 32-bit user ID
-			uint16_t gid_high;		//high 16 bits of 32-bit group ID
-			uint32_t padding2;		//padding
-		} specific_linux;
-
-		struct {
-			uint8_t fragment_number;	//fragment number
-			uint8_t fragment_size;		//fragment size
-			uint16_t type_high;		//high 16 bits of 32 bit "Type and Permissions" field
-			uint16_t uid_high;		//high 16 bits of 32 bit user ID
-			uint16_t gid_high;		//high 16 bits of 32 bit group ID
-			uint32_t author_id;		//user ID of author (if == 0xFFFFFFFF, the normal user  ID will be used)
-		} specific_hurd;
-
-		struct {
-			uint8_t fragment_number;
-			uint8_t fragment_size;
-			uint8_t res[10];
-		} specific_masix;
-	} system_specific_2;
+		os::linux::specific_value_2 linux;
+		os::hurd::specific_value_2 hurd;
+		os::masix::specific_value_2 masix;
+	} os_specific_2;
 };
-
-
-inline bool operator==(const superblock& lhs, const superblock& rhs) {
-	return std::strncmp(reinterpret_cast<const char*>(&lhs), reinterpret_cast<const char*>(&rhs), sizeof(superblock)) == 0;
-}
 
 } /* namespace detail */
 
 template <typename Device, typename Block> class block_data {
-	std::pair<Device &, uint64_t> pos;
+	std::pair<Device *, uint64_t> pos;
 
       public:
+	using device_type = Device;
+	using block_type = Block;
+
 	Block data;
 
-	block_data(Device &d, uint64_t offset) : pos(d, offset) {}
+	block_data(Device *d, uint64_t offset) : pos(d, offset) {}
+	block_data(Device &d, uint64_t offset) : pos(&d, offset) {}
+	block_data(Device *d) : pos(&d, -1) {}
+	block_data() : pos(nullptr, -1) {}
+	block_data(block_data<Device, Block> &) = default;
+	block_data(block_data<Device, Block> &&) = default;
 
-	void write() { detail::write_to_disk(pos.first, pos.second, data); }
+	void write() { detail::write_to_disk(*pos.first, pos.second, data); }
 
-	void read() { detail::read_from_disk(pos.first, pos.second, data); }
+	void read() { detail::read_from_disk(*pos.first, pos.second, data); }
+
+	device_type *device() const { return pos.first; }
+	uint64_t offset() const { return pos.second; }
 };
 
 template <typename Device> using superblock = block_data<Device, detail::superblock>;
+template <typename Device> using group_descriptor = block_data<Device, detail::group_descriptor>;
+template <typename Device> using group_descriptor_table = std::vector<group_descriptor<Device> >;
+template <typename Device> using inode = block_data<Device, detail::inode>;
 
 template <typename Device> superblock<Device> read_superblock(Device &d) {
 	superblock<Device> result(d, 1024);
