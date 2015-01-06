@@ -8,6 +8,7 @@
 
 #include <boost/utility/string_ref.hpp>
 #include <string>
+#include <cmath>
 
 namespace ext2 {
 namespace detail {
@@ -391,6 +392,41 @@ template <typename Device> superblock<Device> read_superblock(Device &d) {
 	superblock<Device> result(d, 1024);
 	result.read();
 	return result;
+}
+
+/*
+ * T must be block_data<> type
+ */
+template <typename T> std::vector<T> read_vector(typename T::device_type &d, uint64_t offset, size_t count) {
+	std::vector<T> result;
+	result.reserve(count); // we want only one memory allocation
+
+	for (size_t i = 0; i < count; i++) {
+		result.emplace_back(d, offset);
+		result.back().read();
+		offset += sizeof(typename T::block_type);
+	}
+
+	return result;
+}
+
+template <typename T> void write_vector(std::vector<T> &vec) {
+	for (auto &item : vec) {
+		item.write();
+	}
+}
+
+/*
+ * Superblock must be superblock<> type
+ */
+template <typename Superblock> group_descriptor_table<typename Superblock::device_type> read_group_descriptor_table(const Superblock &superblock) {
+	uint64_t end = superblock.offset() + sizeof(superblock.data);
+	uint64_t pos = superblock.offset() + superblock.data.block_size();
+	while(pos < end) {
+		pos += superblock.data.block_size();
+	}
+	return read_vector<typename group_descriptor_table<typename Superblock::device_type>::value_type>(
+	    *superblock.device(), pos, superblock.data.block_group_count());
 }
 
 } /* namespace ext2 */
