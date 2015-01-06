@@ -40,9 +40,31 @@ BOOST_AUTO_TEST_CASE(host_node_test) {
 BOOST_AUTO_TEST_CASE(superblock_test) {
 	ext2::detail::superblock firstblock;
 	BOOST_REQUIRE_EQUAL(sizeof(firstblock), 236);
+	BOOST_REQUIRE_EQUAL(sizeof(firstblock), sizeof(ext2::detail::superblock));
 }
 
+BOOST_AUTO_TEST_CASE(group_descriptor_test) {
+	ext2::detail::group_descriptor x;
+	BOOST_REQUIRE_EQUAL(sizeof(x), 32);
+}
 
+BOOST_AUTO_TEST_CASE(inode_test) {
+	ext2::detail::inode x;
+	BOOST_REQUIRE_EQUAL(sizeof(x), 128);
+}
+BOOST_AUTO_TEST_CASE(os_spec_test) {
+	using namespace ext2::detail;
+
+	os::specific_value_1 x;
+	BOOST_REQUIRE_EQUAL(sizeof(x), 4);
+	os::linux::specific_value_2 l;
+	os::hurd::specific_value_2 h;
+	os::masix::specific_value_2 m;
+	BOOST_REQUIRE_EQUAL(sizeof(l), sizeof(h));
+	BOOST_REQUIRE_EQUAL(sizeof(h), sizeof(m));
+	BOOST_REQUIRE_EQUAL(sizeof(h), 12);
+
+}
 struct test_device {
 
 	char data[4096];
@@ -97,8 +119,8 @@ BOOST_AUTO_TEST_CASE(read_superblock_test) {
 	auto superblock2 = ext2::read_superblock(image2);
 	BOOST_CHECK(superblock.data == superblock2.data);
 
-	BOOST_REQUIRE_EQUAL(superblock.data.inodes_count, 2560);
-	BOOST_REQUIRE_EQUAL(superblock.data.blocks_count, 10240); 
+	BOOST_REQUIRE_EQUAL(superblock.data.inode_count, 2560);
+	BOOST_REQUIRE_EQUAL(superblock.data.block_count, 10240); 
 	BOOST_REQUIRE_EQUAL(superblock.data.reserved_blocks_count, 512); 
 	BOOST_REQUIRE_EQUAL(superblock.data.free_block_count, 9770); 
 	BOOST_REQUIRE_EQUAL(superblock.data.free_inodes_count, 2540); 
@@ -131,13 +153,59 @@ BOOST_AUTO_TEST_CASE(read_superblock_test) {
 	BOOST_REQUIRE_EQUAL(superblock.data.journal_inode, 0); 
 	BOOST_REQUIRE_EQUAL(superblock.data.journal_device, 0); 
 	BOOST_REQUIRE_EQUAL(superblock.data.orphan_list_head, 0); 
+	BOOST_REQUIRE_EQUAL(superblock.data.block_group_count(), std::ceil((float)superblock.data.inode_count/superblock.data.inodes_per_group));
+	BOOST_REQUIRE_EQUAL(superblock.data.block_group_count(), 2);
+	BOOST_REQUIRE_EQUAL(superblock.data.block_size(), 1024); 
+	BOOST_REQUIRE_EQUAL(superblock.data.fragment_size(), 1024); 
+}
+
+BOOST_AUTO_TEST_CASE(write_read_vector_test) {
+	using block = ext2::block_data<test_device, char>;
+	test_device d;
+	std::string msg = "qwertzuiopasdfghjklyxcvbnm";
+	d.write(0, msg.c_str(), msg.size());
+	BOOST_CHECK(d.data == msg); 
+
+	auto vec = ext2::read_vector<block>(d, 0, msg.size());
+	BOOST_REQUIRE_EQUAL(vec.size(), msg.size()); 
+	for(int i = 0; i < msg.size(); i++) {
+		BOOST_REQUIRE_EQUAL(vec[i].data, msg[i]); 
+	}
+
+	for(auto& item : vec) {
+		item.data = 'a';
+	}
+	ext2::write_vector(vec);
+	for(int i = 0; i < msg.size(); i++) {
+		BOOST_REQUIRE_EQUAL(d.data[i], 'a'); 
+	}
 
 }
 
 
+BOOST_AUTO_TEST_CASE(read_group_des_table_test) {
+	host_node image("image.img", 1024*1024*10);
+	auto superblock = ext2::read_superblock(image);
+	auto gd_table = ext2::read_group_descriptor_table(superblock);
+	BOOST_REQUIRE_EQUAL(gd_table.size(), 2); 
 
+	auto& gd1 =  gd_table[0];
+	BOOST_REQUIRE_EQUAL(gd1.data.address_block_bitmap, 42);
+	BOOST_REQUIRE_EQUAL(gd1.data.address_inode_bitmap, 43);
+	BOOST_REQUIRE_EQUAL(gd1.data.address_inode_table, 44);
+	BOOST_REQUIRE_EQUAL(gd1.data.free_blocks, 7928);
+	BOOST_REQUIRE_EQUAL(gd1.data.free_inodes, 1262);
+	BOOST_REQUIRE_EQUAL(gd1.data.count_directories, 4);
 
+	auto& gd2 =  gd_table[1];
+	BOOST_REQUIRE_EQUAL(gd2.data.address_block_bitmap, 8234);
+	BOOST_REQUIRE_EQUAL(gd2.data.address_inode_bitmap, 8235);
+	BOOST_REQUIRE_EQUAL(gd2.data.address_inode_table, 8236);
+	BOOST_REQUIRE_EQUAL(gd2.data.free_blocks, 1842);
+	BOOST_REQUIRE_EQUAL(gd2.data.free_inodes, 1278);
+	BOOST_REQUIRE_EQUAL(gd2.data.count_directories, 2);
 
+}
 
 
 
