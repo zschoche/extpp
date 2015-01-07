@@ -43,7 +43,7 @@ template <typename Filesystem> class inode : public inode_base<typename Filesyst
 		do {
 			auto block_index = offset / fs->block_size();
 			auto block_offset = offset % fs->block_size();
-			auto block_length = fs->block_size() - block_offset;
+			auto block_length = std::min(fs->block_size() - block_offset, length);
 			fs->device()->read(fs->to_address(get_block_id(block_index), block_offset), buffer, block_length);
 			offset += block_length;
 			length -= block_length;

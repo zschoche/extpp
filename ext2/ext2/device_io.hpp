@@ -11,12 +11,12 @@
 
 namespace ext2 {
 namespace detail {
-template <typename Device, typename T> void write_to_disk(Device &device, uint64_t offset, const T &value) {
-	device.write(offset, reinterpret_cast<const char *>(&value), sizeof(value));
+template <typename Device, typename T> void write_to_device(Device &device, uint64_t offset, const T &value, uint64_t length = sizeof(T)) {
+	device.write(offset, reinterpret_cast<const char *>(&value), length);
 }
 
-template <typename Device, typename T> void read_from_disk(Device &device, uint64_t offset, T &value) {
-	device.read(offset, reinterpret_cast<char *>(&value), sizeof(value));
+template <typename Device, typename T> void read_from_device(Device &device, uint64_t offset, T &value, uint64_t length = sizeof(T)) {
+	device.read(offset, reinterpret_cast<char *>(&value), length);
 }
 
 } /* namespace detail */
@@ -38,9 +38,9 @@ template <typename Device, typename Block> class block_data {
 	block_data(block_data<Device, Block> &) = default;
 	block_data(block_data<Device, Block> &&) = default;
 
-	void save() { detail::write_to_disk(*pos.first, pos.second, data); }
+	void save() { detail::write_to_device(*pos.first, pos.second, data); }
 
-	void load() { detail::read_from_disk(*pos.first, pos.second, data); }
+	void load() { detail::read_from_device(*pos.first, pos.second, data); }
 
 	device_type *device() const { return pos.first; }
 	uint64_t offset() const { return pos.second; }

@@ -450,6 +450,35 @@ struct __attribute__((packed)) group_descriptor {
 	}
 };
 
+namespace directory_entry_type {
+enum directory_entry_type : uint8_t {
+	unknown_type = 0,	
+	regular_file = 1,	
+	directory = 2,	
+	character_device = 3,	
+	block_device = 4,	
+	fifo = 5,	
+	socket = 6,	
+	symbolic_link = 7	
+};
+} /* namespace directory_entry_type */
+
+struct __attribute__((packed)) directory_entry {
+	uint32_t inode_id;
+	uint16_t size;
+	uint8_t name_size;
+	directory_entry_type::directory_entry_type type;
+	std::string name;
+
+	template <typename OStream> OStream& dump(OStream &os) const {
+		os << "Directory Entry Dump:" << std::endl;
+		os << "\tinode_id: " <<  inode_id << '\n';
+		os << "\tsize: " <<  size << '\n';
+		//os << "type: " <<  type << '\n';
+		os << "\tname: " <<  name << '\n';
+		return os;
+	}
+};
 
 } /* namespace detail */
 

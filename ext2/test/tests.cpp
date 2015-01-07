@@ -232,16 +232,23 @@ BOOST_AUTO_TEST_CASE(read_filesystem_root_test) {
 	BOOST_REQUIRE_EQUAL(root.is_regular_file(),  false);
 	BOOST_REQUIRE_EQUAL(root.size(),  1024);
 }
+
+
 BOOST_AUTO_TEST_CASE(read_root_content_test) { //this is not done.
 	host_node image("image.img", 1024*1024*10);
 	auto filesystem = ext2::read_filesystem(image);
 	auto root = filesystem.get_root();
-	char* buffer = new char[root.size()];
-	
-	root.read(0, buffer, root.size());
-	for(int i = 0; i < root.size(); i++) {
-		std::cout << (int)buffer[i] << std::endl;
-	}
-	delete [] buffer;
+	auto offset = 0;
+	BOOST_CHECK(sizeof(ext2::detail::directory_entry) > 8);
+	do {
+		ext2::detail::directory_entry entry;	
+		ext2::detail::read_from_device(root, offset, entry, 8);
+		offset += 8;
+		entry.name.resize(entry.name_size);
+		root.read(offset, const_cast<char*>(entry.name.c_str()), entry.name_size);	
+		entry.dump(std::cout);
+		offset += entry.size - 8;
+	} while(offset < root.size());
+
 
 }
