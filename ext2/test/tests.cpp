@@ -3,7 +3,7 @@
 
 #include <boost/test/unit_test.hpp>
 #include "host_node.hpp"
-#include "../ext2/structs.hpp"
+#include "../ext2/filesystem.hpp"
 #include "../ext2/block_device.hpp"
 #include <fstream>
 #include <iostream>
@@ -208,5 +208,40 @@ BOOST_AUTO_TEST_CASE(read_group_des_table_test) {
 }
 
 
+BOOST_AUTO_TEST_CASE(read_filesystem_root_test) {
+	host_node image("image.img", 1024*1024*10);
+	auto filesystem = ext2::read_filesystem(image);
+	auto root = filesystem.get_root();
+	BOOST_REQUIRE_EQUAL(root.data.type, 16877);
+	BOOST_REQUIRE_EQUAL(root.data.uid, 1000);
+	BOOST_REQUIRE_EQUAL(root.data.size, 1024);
+	BOOST_REQUIRE_EQUAL(root.data.access_time_last, 1419087092);
+	BOOST_REQUIRE_EQUAL(root.data.creation_time, 1419087091);
+	BOOST_REQUIRE_EQUAL(root.data.mod_time, 1419087091);
+	BOOST_REQUIRE_EQUAL(root.data.del_time, 0);
+	BOOST_REQUIRE_EQUAL(root.data.gid, 1000);
+	BOOST_REQUIRE_EQUAL(root.data.count_hard_link, 5);
+	BOOST_REQUIRE_EQUAL(root.data.count_sector, 2);
+	BOOST_REQUIRE_EQUAL(root.data.flags, 0);
+	BOOST_REQUIRE_EQUAL(root.data.os_specific_1, 11);
+	BOOST_REQUIRE_EQUAL(root.data.number_generation, 0);
+	BOOST_REQUIRE_EQUAL(root.data.file_acl, 0);
+	BOOST_REQUIRE_EQUAL(root.data.dir_acl, 0);
+	BOOST_REQUIRE_EQUAL(root.data.fragment_address, 0);
+	BOOST_REQUIRE_EQUAL(root.is_directory(),  true);
+	BOOST_REQUIRE_EQUAL(root.is_regular_file(),  false);
+	BOOST_REQUIRE_EQUAL(root.size(),  1024);
+}
+BOOST_AUTO_TEST_CASE(read_root_content_test) { //this is not done.
+	host_node image("image.img", 1024*1024*10);
+	auto filesystem = ext2::read_filesystem(image);
+	auto root = filesystem.get_root();
+	char* buffer = new char[root.size()];
+	
+	root.read(0, buffer, root.size());
+	for(int i = 0; i < root.size(); i++) {
+		std::cout << (int)buffer[i] << std::endl;
+	}
+	delete [] buffer;
 
-
+}
