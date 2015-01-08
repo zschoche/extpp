@@ -7,9 +7,12 @@
 #define __FILESYSTEM_HPP__
 
 #include "device_io.hpp"
-
+#include <array>
 namespace ext2 {
 
+/*
+ * implements the device concept
+ */
 template <typename Filesystem> class inode : public inode_base<typename Filesystem::device_type> {
       public:
 	typedef Filesystem fs_type;
@@ -18,11 +21,11 @@ template <typename Filesystem> class inode : public inode_base<typename Filesyst
 	fs_type *fs;
 
 	uint32_t get_block_id(uint32_t block_index) const {
-		if(block_index < 12) {
-			//direct pointer
+		if (block_index < 12) {
+			// direct pointer
 			return this->data.block_pointer_direct[block_index];
 		} else {
-			return 0; //TODO: ...
+			return 0; // TODO: ...
 		}
 	}
 
@@ -31,6 +34,7 @@ template <typename Filesystem> class inode : public inode_base<typename Filesyst
 
 	inline bool is_directory() const { return this->data.type & detail::directory; }
 	inline bool is_regular_file() const { return this->data.type & detail::regular_file; }
+	inline bool is_symbolic_link() const { return this->data.type & detail::symbolic_link; }
 	inline uint64_t size() const {
 		if (is_regular_file() && fs->large_files()) {
 			return (static_cast<uint64_t>(this->data.dir_acl) << 32) | (this->data.size);
@@ -39,7 +43,7 @@ template <typename Filesystem> class inode : public inode_base<typename Filesyst
 		}
 	}
 
-	void read(uint64_t offset, char* buffer, uint64_t length) {
+	void read(uint64_t offset, char *buffer, uint64_t length) {
 		do {
 			auto block_index = offset / fs->block_size();
 			auto block_offset = offset % fs->block_size();
@@ -49,12 +53,94 @@ template <typename Filesystem> class inode : public inode_base<typename Filesyst
 			length -= block_length;
 		} while (length > 0);
 	}
+	void write(uint64_t offset, const char *buffer, uint64_t length) {} // TODO: implement!
+
+	inline fs_type *get_fs() { return fs; }
 };
+
+typedef std::vector<detail::directory_entry> directory_entry_list;
+
+namespace inodes {
+template <typename Filesystem> struct file : inode<Filesystem> {};
+template <typename OStream, typename Filesystem> OStream &operator<<(OStream &os, file<Filesystem> &f) {
+	std::array<char, 255> buffer;
+	auto offset = 0;
+	const auto size = f.size();
+	do {
+		auto length = std::min<uint64_t>(size - offset, buffer.size());
+		f.read(offset, buffer.data(), length);
+		os << std::string(buffer.data(), length);
+		offset += length;
+	} while (offset < size);
+	return os;
+}
+
+template <typename Filesystem> struct character_device : inode<Filesystem> {};
+template <typename Filesystem> struct block_device : inode<Filesystem> {};
+template <typename Filesystem> struct fifo : inode<Filesystem> {};
+template <typename Filesystem> struct symbolic_link : inode<Filesystem> {};
+template <typename Filesystem> struct directory : inode<Filesystem> {
+
+	directory_entry_list read_entrys() {
+		auto offset = 0;
+		directory_entry_list result;
+		result.reserve(8);
+		do {
+			detail::directory_entry entry;
+			detail::read_from_device(*this, offset, entry, 8);
+			if(entry.inode_id == 0) 
+				break;
+			offset += 8;
+			entry.name.resize(entry.name_size);
+			this->read(offset, const_cast<char *>(entry.name.c_str()), entry.name_size);
+			offset += entry.size - 8;
+			result.push_back(std::move(entry));
+		} while (offset < this->size());
+		return result;
+	}
+
+	void write_entrys(const directory_entry_list &entrys) {
+		// TODO
+	}
+};
+} /* namespace inodes */
+
+template <typename Filesystem> inodes::directory<Filesystem> *to_directory(inode<Filesystem> *from) {
+	if (from->is_directory())
+		return static_cast<inodes::directory<Filesystem> *>(from);
+	else
+		return nullptr;
+}
+template <typename Filesystem> inodes::file<Filesystem> *to_file(inode<Filesystem> *from) {
+	if (from->is_regular_file())
+		return static_cast<inodes::file<Filesystem> *>(from);
+	else
+		return nullptr;
+}
+
+template <typename Filesystem> inodes::file<Filesystem> *to_symbolic_link(inode<Filesystem> *from) {
+	if (from->is_symbolic_link())
+		return static_cast<inodes::file<Filesystem> *>(from);
+	else
+		return nullptr;
+}
+
+typedef std::vector<std::pair<uint64_t, std::string>> path;
+
+template<typename OStream>
+OStream& operator<<(OStream& os, const path& p) {
+	for(const auto& item : p) {
+		os << '/' << item.second;
+	}
+	return os;
+}
 
 template <typename Device> class filesystem {
       public:
 	typedef typename superblock<Device>::device_type device_type;
 	typedef inode<filesystem<Device> > inode_type;
+	typedef inodes::directory<filesystem<Device> > directory_type;
+	typedef inodes::file<filesystem<Device> > file_type;
 	typedef group_descriptor_table<Device> gd_table_type;
 
       private:
