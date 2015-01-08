@@ -125,12 +125,12 @@ template <typename Filesystem> inodes::file<Filesystem> *to_symbolic_link(inode<
 		return nullptr;
 }
 
-typedef std::vector<std::pair<uint64_t, std::string>> path;
+typedef std::vector<std::pair<uint64_t, std::string*>> path;
 
 template<typename OStream>
 OStream& operator<<(OStream& os, const path& p) {
 	for(const auto& item : p) {
-		os << '/' << item.second;
+		os << '/' << *item.second;
 	}
 	return os;
 }

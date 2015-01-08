@@ -5,6 +5,7 @@
 #include "host_node.hpp"
 #include "../ext2/filesystem.hpp"
 #include "../ext2/block_device.hpp"
+#include "../ext2/visitors.hpp"
 #include <fstream>
 #include <iostream>
 
@@ -293,3 +294,42 @@ BOOST_AUTO_TEST_CASE(read_testfile_test) {
 }
 
 
+
+BOOST_AUTO_TEST_CASE(visitor_test) {
+	host_node image("image.img", 1024 * 1024 * 10);
+	auto filesystem = ext2::read_filesystem(image);
+	auto root = filesystem.get_root();
+
+	std::stringstream ss;
+	ext2::print(ss, root);
+	BOOST_CHECK(ss.str() == "/lost+found\n/tmp\n/tmp/testdir\n/tmp/testdir/largefile2\n/tmp/testdir/largefile\n/tmp2\n/tmp2/testdir\n/tmp2/testdir/largefile2\n/tmp2/testdir/largefile\n/testfile\n");
+
+
+}
+
+BOOST_AUTO_TEST_CASE(print_fs_test) {
+	host_node image("image.img", 1024 * 1024 * 10);
+	auto filesystem = ext2::read_filesystem(image);
+	auto root = filesystem.get_root();
+	filesystem.dump(std::cout);
+	
+	std::cout << "\n\n ### Content ###" << std::endl;
+	ext2::print(std::cout, root);
+
+}
+
+BOOST_AUTO_TEST_CASE(find_file_test) {
+	host_node image("image.img", 1024 * 1024 * 10);
+	auto filesystem = ext2::read_filesystem(image);
+	auto root = filesystem.get_root();
+
+	uint32_t inode_id = ext2::find_inode(root, { "tmp2", "testdir", "largefile" });
+	BOOST_REQUIRE_EQUAL(inode_id, 18);
+
+	std::cout << "Content of 'largefile':" << std::endl;
+	auto inode = filesystem.get_inode(inode_id);
+	if(auto* file = ext2::to_file(&inode)) {
+		std::cout << *file << std::endl;
+	}
+	
+}
