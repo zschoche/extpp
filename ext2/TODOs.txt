@@ -11,4 +11,5 @@ Viele Sachen sind einfach im Code mit //TODO gekennzeichnet.
 - Dateien verkleinern
 - Verzeichnis schreiben
 ? mirroring
+? hardlinks
 ? rechte
