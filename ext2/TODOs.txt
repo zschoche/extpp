@@ -1,6 +1,7 @@
 Viele Sachen sind einfach im Code mit //TODO gekennzeichnet.
 
 
+- alle std::endl in den dump() funktionen durch \n ersetzen. und \r überall entfernen
 - Ziel von einem Soft-Link auslesen
 - visitors gehen nicht korrekt mit Soft-Links um
 - Sehr große Datein können nicht gelesen werden (Indirekte blöcke 2,3)
