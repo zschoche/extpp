@@ -1,0 +1,13 @@
+Viele Sachen sind einfach im Code mit //TODO gekennzeichnet.
+
+
+- Ziel von einem Soft-Link auslesen
+- visitors gehen nicht korrekt mit Soft-Links um
+- Sehr große Datein können nicht gelesen werden (Indirekte blöcke 2,3)
+- Allocator für Block fehlt noch komplett
+- Dateien schreiben
+- Dateien vergrößern
+- Dateien verkleinern
+- Verzeichnis schreiben
+? mirroring
+? rechte
