@@ -10,6 +10,14 @@
 
 namespace ext2 {
 
+typedef std::vector<std::pair<uint64_t, std::string *> > inode_path;
+template <typename OStream> OStream &operator<<(OStream &os, const inode_path &p) {
+	for (const auto &item : p) {
+		os << '/' << *item.second;
+	}
+	return os;
+}
+
 namespace visitors {
 
 enum ops { explore, forward, cancel };
@@ -38,10 +46,10 @@ template <typename T, bool VISIT_DOT_AND_DOTDOT = false> struct visitor {
 		return result;
 	}
 
-	const path *get_current_path() const { return &_path; }
+	const inode_path *get_current_path() const { return &_path; }
 
       private:
-	path _path;
+	inode_path _path;
 
 	template <typename Inode> ops lookup(detail::directory_entry &entry, Inode &inode) {
 		ops result = explore;
@@ -60,7 +68,7 @@ template <typename OStream> struct printer : visitor<printer<OStream> > {
 
 	printer(OStream &os) : os(os) {}
 	template <typename Inode> ops operator()(const std::string &name, Inode *inode) {
-		const ext2::path *p = this->get_current_path();
+		const ext2::inode_path *p = this->get_current_path();
 		os << *p;
 		if (auto *symlink = to_symbolic_link(inode)) {
 			os << " -> " << symlink->get_target();
@@ -73,23 +81,62 @@ template <typename OStream> struct printer : visitor<printer<OStream> > {
 	OStream &os;
 };
 
-struct finder : visitor<finder, true> {
+template<typename Filesystem>
+struct finder : visitor<finder<Filesystem>, true> {
 
-	const std::vector<std::string> &unified_path;
-	std::vector<std::string>::const_iterator pos;
+	typedef Filesystem fs_type;
+	typedef typename fs_type::inode_type inode_type;
+	path target;
+	path::vec_type::const_iterator pos;
+	bool hide_symlink = true;
 	uint32_t inode_id = 0;
 
-	finder(const std::vector<std::string> &unified_path) : unified_path(unified_path), pos(this->unified_path.cbegin()) {}
-	template <typename Inode> ops operator()(const std::string &name, Inode *inode) {
+	finder(path target) : target(std::move(target)), pos(this->target.vec.cbegin()) {}
+
+	ops operator()(const std::string &name, inode_type *inode) {
 		if (name == *pos) {
 			pos++;
-			if (pos == unified_path.end()) {
+			if(auto* dir = to_directory(inode)) {
+				cur_dir = dir;
+			}
+
+			if (hide_symlink || pos != target.vec.cend()) {
+			if (auto *symlink = to_symbolic_link(inode) ) { // follow
+				explore_symlink(symlink);
+				return cancel;
+			}
+			}
+			if (pos == target.vec.cend()) {
 				inode_id = this->get_current_path()->back().first;
 				return cancel;
 			}
 			return explore;
 		}
 		return forward;
+	}
+
+      private:
+	inode_type* cur_dir = nullptr;
+	void explore_symlink(typename fs_type::symbolic_link_type *link) {
+		std::string path_str = link->get_target();
+		if(path_str.back() != '/') 
+			path_str += '/';
+
+		for(auto iter = pos; iter != target.vec.end(); iter++) {
+			path_str += *iter;
+			path_str += '/';
+		}
+
+		
+		path p = path_from_string(path_str);
+		finder f(p);
+		if (p.is_relative() && cur_dir != nullptr) {
+			f.visit(*cur_dir);
+		} else {
+			auto root = link->get_fs()->get_root();
+			f.visit(root);
+		}
+		inode_id = f.inode_id;
 	}
 };
 
@@ -102,8 +149,9 @@ template <typename OStream, typename Inode> OStream &print(OStream &os, Inode &i
 	return os;
 }
 
-template <typename Inode> uint32_t find_inode(Inode &inode, const std::vector<std::string> &unified_path) {
-	visitors::finder f(unified_path);
+template <typename Inode> uint32_t find_inode(Inode &inode, const std::string &path, bool hide_symlink = true) {
+	visitors::finder<typename Inode::fs_type> f(path_from_string(path));
+	f.hide_symlink = hide_symlink;
 	f.visit(inode);
 	return f.inode_id;
 }

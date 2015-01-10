@@ -186,6 +186,7 @@ template <typename Device> class filesystem {
 	typedef inode<filesystem<Device> > inode_type;
 	typedef inodes::directory<filesystem<Device> > directory_type;
 	typedef inodes::file<filesystem<Device> > file_type;
+	typedef inodes::symbolic_link<filesystem<Device> > symbolic_link_type;
 	typedef group_descriptor_table<Device> gd_table_type;
 
       private:

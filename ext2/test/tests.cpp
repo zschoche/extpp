@@ -336,12 +336,59 @@ BOOST_AUTO_TEST_CASE(print_fs_test) {
 }
 */
 
+BOOST_AUTO_TEST_CASE(path_1_test) {
+	std::string str = "/tmp2/testdir/largefile";
+	ext2::path p = ext2::path_from_string(str);
+	std::vector<std::string> v = { "tmp2", "testdir", "largefile" };
+	BOOST_REQUIRE_EQUAL(p.str, str);
+	BOOST_REQUIRE_EQUAL(p.vec.size(), 3);
+	for(int i = 0; i < v.size(); i++) {
+		BOOST_CHECK(v[i] == p.vec[i]);
+
+	}
+}
+BOOST_AUTO_TEST_CASE(path_2_test) {
+	std::string str = "tmp2/testdir/largefile";
+	ext2::path p = ext2::path_from_string(str);
+	std::vector<std::string> v = { "tmp2", "testdir", "largefile" };
+	BOOST_REQUIRE_EQUAL(p.str, str);
+	BOOST_REQUIRE_EQUAL(p.vec.size(), 3);
+	for(int i = 0; i < v.size(); i++) {
+		BOOST_CHECK(v[i] == p.vec[i]);
+
+	}
+}
+BOOST_AUTO_TEST_CASE(path_3_test) {
+	std::string str = "tmp2/testdir/largefile/";
+	ext2::path p = ext2::path_from_string(str);
+	std::vector<std::string> v = { "tmp2", "testdir", "largefile" };
+	BOOST_REQUIRE_EQUAL(p.str, str);
+	BOOST_REQUIRE_EQUAL(p.vec.size(), 3);
+	for(int i = 0; i < v.size(); i++) {
+		BOOST_CHECK(v[i] == p.vec[i]);
+
+	}
+}
+
+BOOST_AUTO_TEST_CASE(path_4_test) {
+	std::string str = "/tmp2/testdir/largefile/";
+	ext2::path p = ext2::path_from_string(str);
+	std::vector<std::string> v = { "tmp2", "testdir", "largefile" };
+	BOOST_REQUIRE_EQUAL(p.str, str);
+	BOOST_REQUIRE_EQUAL(p.vec.size(), 3);
+	for(int i = 0; i < v.size(); i++) {
+		BOOST_CHECK(v[i] == p.vec[i]);
+
+	}
+}
+
+
 BOOST_AUTO_TEST_CASE(find_file_test) {
 	host_node image("image.img", 1024 * 1024 * 10);
 	auto filesystem = ext2::read_filesystem(image);
 	auto root = filesystem.get_root();
 
-	uint32_t inode_id = ext2::find_inode(root, { "tmp2", "testdir", "largefile" });
+	uint32_t inode_id = ext2::find_inode(root, "/tmp2/testdir/largefile");
 	BOOST_REQUIRE_EQUAL(inode_id, 18);
 	
 }
@@ -352,7 +399,7 @@ BOOST_AUTO_TEST_CASE(read_big_file_test) {
 	auto filesystem = ext2::read_filesystem(image);
 	auto root = filesystem.get_root();
 
-	uint32_t inode_id = ext2::find_inode(root, { "tmp2", "testdir", "largefile" });
+	uint32_t inode_id = ext2::find_inode(root, "/tmp2/testdir/largefile");
 	BOOST_REQUIRE_EQUAL(inode_id, 18);
 
 	auto inode = filesystem.get_inode(inode_id);
@@ -372,8 +419,60 @@ BOOST_AUTO_TEST_CASE(read_big_file_test) {
 	}
 }
 
+BOOST_AUTO_TEST_CASE(read_symlink_1_test) {
+	host_node image("image.img", 1024 * 1024 * 10);
+	auto filesystem = ext2::read_filesystem(image);
+	auto root = filesystem.get_root();
 
-// asdasd/../asdasd/asdasd
-// asdasd/asd
-// auf symlink
-// mit symlink drin
+	uint32_t inode_id = ext2::find_inode(root, "/tmp2/testdir/link", false);
+	BOOST_REQUIRE_EQUAL(inode_id, 19);
+	auto inode = filesystem.get_inode(inode_id);
+	auto* symlink = ext2::to_symbolic_link(&inode);
+	BOOST_CHECK(symlink != nullptr);
+	std::string target = symlink->get_target();
+	BOOST_CHECK(target == "../../testfile");
+}
+
+BOOST_AUTO_TEST_CASE(read_symlink_2_test) {
+	host_node image("image.img", 1024 * 1024 * 10);
+	auto filesystem = ext2::read_filesystem(image);
+	auto root = filesystem.get_root();
+
+	uint32_t inode_id = ext2::find_inode(root, "/tmp2/testdir/largefile_with_more_than_60_chars_01234567890123456789012345678901234567890123456789012345678901234567890123456789", false);
+	BOOST_REQUIRE_EQUAL(inode_id, 22);
+	auto inode = filesystem.get_inode(inode_id);
+	auto* symlink = ext2::to_symbolic_link(&inode);
+	BOOST_CHECK(symlink != nullptr);
+	std::string target = symlink->get_target();
+	BOOST_CHECK(target == "largefile");
+}
+
+BOOST_AUTO_TEST_CASE(find_file_2_test) {
+	host_node image("image.img", 1024 * 1024 * 10);
+	auto filesystem = ext2::read_filesystem(image);
+	auto root = filesystem.get_root();
+
+	uint32_t inode_id = ext2::find_inode(root, "/tmp2/../tmp2/./testdir/largefile");
+	BOOST_REQUIRE_EQUAL(inode_id, 18);
+	
+}
+
+BOOST_AUTO_TEST_CASE(find_file_symlink_test) {
+	host_node image("image.img", 1024 * 1024 * 10);
+	auto filesystem = ext2::read_filesystem(image);
+	auto root = filesystem.get_root();
+
+	uint32_t inode_id = ext2::find_inode(root, "/tmp2/../tmp2/./testdir/link");
+	BOOST_REQUIRE_EQUAL(inode_id, 13);
+	
+}
+
+BOOST_AUTO_TEST_CASE(find_file_symlink_2_test) {
+	host_node image("image.img", 1024 * 1024 * 10);
+	auto filesystem = ext2::read_filesystem(image);
+	auto root = filesystem.get_root();
+
+	uint32_t inode_id = ext2::find_inode(root, "/tmp2/testdir/tmp/testdir/largefile");
+	BOOST_REQUIRE_EQUAL(inode_id, 15);
+	
+}
