@@ -467,7 +467,7 @@ struct __attribute__((packed)) directory_entry {
 	uint32_t inode_id;
 	uint16_t size;
 	uint8_t name_size;
-	directory_entry_type::directory_entry_type type;
+	directory_entry_type::directory_entry_type type; // TODO: this field may not exists
 	std::string name;
 
 	template <typename OStream> OStream& dump(OStream &os) const {

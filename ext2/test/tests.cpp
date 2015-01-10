@@ -326,10 +326,20 @@ BOOST_AUTO_TEST_CASE(find_file_test) {
 	uint32_t inode_id = ext2::find_inode(root, { "tmp2", "testdir", "largefile" });
 	BOOST_REQUIRE_EQUAL(inode_id, 18);
 
-	std::cout << "Content of 'largefile':" << std::endl;
 	auto inode = filesystem.get_inode(inode_id);
+	std::string str;
+	//672 lines
+	for(int i = 0; i < 672; i++) {
+		str += "a bit more content.\n";
+	}
+	//str.erase(str.size(), 1);
 	if(auto* file = ext2::to_file(&inode)) {
-		std::cout << *file << std::endl;
+		std::stringstream ss;
+		ss << *file;
+		BOOST_CHECK(ss.str() == str);
+
+	} else {
+		BOOST_ERROR("that should be a file");
 	}
 	
 }

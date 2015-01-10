@@ -24,8 +24,15 @@ template <typename Filesystem> class inode : public inode_base<typename Filesyst
 		if (block_index < 12) {
 			// direct pointer
 			return this->data.block_pointer_direct[block_index];
+		} else if (block_index < 268) {
+			block_index -= 12;
+			uint32_t result;
+			auto blockid = this->data.block_pointer_indirect[0];
+			detail::read_from_device(*fs->device(), fs->to_address(blockid, block_index*sizeof(uint32_t)), result);
+			return result;
 		} else {
-			return 0; // TODO: ...
+			throw "this is not ready yet";	
+			return 0; // TODO: implement
 		}
 	}
 
@@ -44,11 +51,13 @@ template <typename Filesystem> class inode : public inode_base<typename Filesyst
 	}
 
 	void read(uint64_t offset, char *buffer, uint64_t length) {
+		auto buffer_offset = 0;
 		do {
 			auto block_index = offset / fs->block_size();
 			auto block_offset = offset % fs->block_size();
 			auto block_length = std::min(fs->block_size() - block_offset, length);
-			fs->device()->read(fs->to_address(get_block_id(block_index), block_offset), buffer, block_length);
+			fs->device()->read(fs->to_address(get_block_id(block_index), block_offset), &buffer[buffer_offset], block_length);
+			buffer_offset += block_length;
 			offset += block_length;
 			length -= block_length;
 		} while (length > 0);
