@@ -8,6 +8,7 @@
 
 #include "device_io.hpp"
 #include <array>
+#include <boost/algorithm/string/split.hpp>
 namespace ext2 {
 
 /*
@@ -66,27 +67,24 @@ template <typename Filesystem> class inode : public inode_base<typename Filesyst
 
 	inline fs_type *get_fs() { return fs; }
 };
-template <typename OStream, typename Inode> void read_inode_content(OStream &os, Inode& inode) {
-		std::array<char, 255> buffer;
-		auto offset = 0;
-		const auto size = inode.size();
-		do {
-			auto length = std::min<uint64_t>(size - offset, buffer.size());
-			inode.read(offset, buffer.data(), length);
-			os << std::string(buffer.data(), length);
-			offset += length;
-		} while (offset < size);
-	}
-
+template <typename OStream, typename Inode> void read_inode_content(OStream &os, Inode &inode) {
+	std::array<char, 255> buffer;
+	auto offset = 0;
+	const auto size = inode.size();
+	do {
+		auto length = std::min<uint64_t>(size - offset, buffer.size());
+		inode.read(offset, buffer.data(), length);
+		os << std::string(buffer.data(), length);
+		offset += length;
+	} while (offset < size);
+}
 
 typedef std::vector<detail::directory_entry> directory_entry_list;
 
 namespace inodes {
 template <typename Filesystem> struct file : inode<Filesystem> {
 
-	template <typename OStream> void read_full_file(OStream &os) {
-		read_inode_content(os, *this);
-	}
+	template <typename OStream> void read_full_file(OStream &os) { read_inode_content(os, *this); }
 };
 template <typename OStream, typename Filesystem> OStream &operator<<(OStream &os, file<Filesystem> &f) {
 	f.read_full_file(os);
@@ -100,8 +98,8 @@ template <typename Filesystem> struct symbolic_link : inode<Filesystem> {
 
 	std::string get_target() {
 		/* http://www.nongnu.org/ext2-doc/ext2.html#DEF-SYMBOLIC-LINKS */
-		if(this->size() < 60) {
-			const char* cstring = reinterpret_cast<char*>(&(this->data.block_pointer_direct[0]));
+		if (this->size() < 60) {
+			const char *cstring = reinterpret_cast<char *>(&(this->data.block_pointer_direct[0]));
 			std::string result(cstring, this->size());
 			return result;
 		}
@@ -111,7 +109,6 @@ template <typename Filesystem> struct symbolic_link : inode<Filesystem> {
 		return ss.str();
 	}
 };
-
 
 template <typename Filesystem> struct directory : inode<Filesystem> {
 
@@ -159,13 +156,28 @@ template <typename Filesystem> inodes::symbolic_link<Filesystem> *to_symbolic_li
 		return nullptr;
 }
 
-typedef std::vector<std::pair<uint64_t, std::string *> > path;
+struct path {
+	// typedef boost::iterator_range<std::string::iterator> range_type;
+	typedef std::vector<std::string> vec_type;
+	std::string str;
+	vec_type vec;
 
-template <typename OStream> OStream &operator<<(OStream &os, const path &p) {
-	for (const auto &item : p) {
-		os << '/' << *item.second;
+	inline bool is_relative() const { return !(!str.empty() && str[0] == '/'); }
+};
+
+inline path path_from_string(const std::string &p) {
+	path result{p};
+	if (result.str.size() > 3) {
+		auto first = result.str.begin();
+		auto last = --(result.str.end());
+		if (*first == '/')
+			first++;
+		if (*last != '/')
+			last++;
+		auto range = boost::make_iterator_range(first, last);
+		boost::split(result.vec, range, [](auto c) { return c == '/'; });
 	}
-	return os;
+	return result;
 }
 
 template <typename Device> class filesystem {
