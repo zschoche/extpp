@@ -28,10 +28,10 @@ template <typename Filesystem> class inode : public inode_base<typename Filesyst
 			block_index -= 12;
 			uint32_t result;
 			auto blockid = this->data.block_pointer_indirect[0];
-			detail::read_from_device(*fs->device(), fs->to_address(blockid, block_index*sizeof(uint32_t)), result);
+			detail::read_from_device(*fs->device(), fs->to_address(blockid, block_index * sizeof(uint32_t)), result);
 			return result;
 		} else {
-			throw "this is not ready yet";	
+			throw "this is not ready yet";
 			return 0; // TODO: implement
 		}
 	}
@@ -66,28 +66,53 @@ template <typename Filesystem> class inode : public inode_base<typename Filesyst
 
 	inline fs_type *get_fs() { return fs; }
 };
+template <typename OStream, typename Inode> void read_inode_content(OStream &os, Inode& inode) {
+		std::array<char, 255> buffer;
+		auto offset = 0;
+		const auto size = inode.size();
+		do {
+			auto length = std::min<uint64_t>(size - offset, buffer.size());
+			inode.read(offset, buffer.data(), length);
+			os << std::string(buffer.data(), length);
+			offset += length;
+		} while (offset < size);
+	}
+
 
 typedef std::vector<detail::directory_entry> directory_entry_list;
 
 namespace inodes {
-template <typename Filesystem> struct file : inode<Filesystem> {};
+template <typename Filesystem> struct file : inode<Filesystem> {
+
+	template <typename OStream> void read_full_file(OStream &os) {
+		read_inode_content(os, *this);
+	}
+};
 template <typename OStream, typename Filesystem> OStream &operator<<(OStream &os, file<Filesystem> &f) {
-	std::array<char, 255> buffer;
-	auto offset = 0;
-	const auto size = f.size();
-	do {
-		auto length = std::min<uint64_t>(size - offset, buffer.size());
-		f.read(offset, buffer.data(), length);
-		os << std::string(buffer.data(), length);
-		offset += length;
-	} while (offset < size);
+	f.read_full_file(os);
 	return os;
 }
 
 template <typename Filesystem> struct character_device : inode<Filesystem> {};
 template <typename Filesystem> struct block_device : inode<Filesystem> {};
 template <typename Filesystem> struct fifo : inode<Filesystem> {};
-template <typename Filesystem> struct symbolic_link : inode<Filesystem> {};
+template <typename Filesystem> struct symbolic_link : inode<Filesystem> {
+
+	std::string get_target() {
+		/* http://www.nongnu.org/ext2-doc/ext2.html#DEF-SYMBOLIC-LINKS */
+		if(this->size() < 60) {
+			const char* cstring = reinterpret_cast<char*>(&(this->data.block_pointer_direct[0]));
+			std::string result(cstring, this->size());
+			return result;
+		}
+
+		std::stringstream ss;
+		read_inode_content(ss, *this);
+		return ss.str();
+	}
+};
+
+
 template <typename Filesystem> struct directory : inode<Filesystem> {
 
 	directory_entry_list read_entrys() {
@@ -97,7 +122,7 @@ template <typename Filesystem> struct directory : inode<Filesystem> {
 		do {
 			detail::directory_entry entry;
 			detail::read_from_device(*this, offset, entry, 8);
-			if(entry.inode_id == 0) 
+			if (entry.inode_id == 0)
 				break;
 			offset += 8;
 			entry.name.resize(entry.name_size);
@@ -127,18 +152,17 @@ template <typename Filesystem> inodes::file<Filesystem> *to_file(inode<Filesyste
 		return nullptr;
 }
 
-template <typename Filesystem> inodes::file<Filesystem> *to_symbolic_link(inode<Filesystem> *from) {
+template <typename Filesystem> inodes::symbolic_link<Filesystem> *to_symbolic_link(inode<Filesystem> *from) {
 	if (from->is_symbolic_link())
-		return static_cast<inodes::file<Filesystem> *>(from);
+		return static_cast<inodes::symbolic_link<Filesystem> *>(from);
 	else
 		return nullptr;
 }
 
-typedef std::vector<std::pair<uint64_t, std::string*>> path;
+typedef std::vector<std::pair<uint64_t, std::string *> > path;
 
-template<typename OStream>
-OStream& operator<<(OStream& os, const path& p) {
-	for(const auto& item : p) {
+template <typename OStream> OStream &operator<<(OStream &os, const path &p) {
+	for (const auto &item : p) {
 		os << '/' << *item.second;
 	}
 	return os;

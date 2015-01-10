@@ -2,7 +2,8 @@ Viele Sachen sind einfach im Code mit //TODO gekennzeichnet.
 
 
 - alle std::endl in den dump() funktionen durch \n ersetzen. und \r überall entfernen
-- Ziel von einem Soft-Link auslesen
+- Ziel von einem Soft-Link auslesen relativ
+- Ziel von einem Soft-Link auslesen absolute
 - visitors gehen nicht korrekt mit Soft-Links um
 - Sehr große Datein können nicht gelesen werden (Indirekte blöcke 2,3)
 - Allocator für Block fehlt noch komplett
@@ -10,6 +11,7 @@ Viele Sachen sind einfach im Code mit //TODO gekennzeichnet.
 - Dateien vergrößern
 - Dateien verkleinern
 - Verzeichnis schreiben
+- const correctness
 ? mirroring
 ? hardlinks
 ? rechte

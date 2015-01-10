@@ -112,17 +112,17 @@ BOOST_AUTO_TEST_CASE(read_superblock_test) {
 	BOOST_REQUIRE_EQUAL(superblock.data.block_count, 10240);
 	BOOST_REQUIRE_EQUAL(superblock.data.reserved_blocks_count, 512);
 	BOOST_REQUIRE_EQUAL(superblock.data.free_block_count, 9770);
-	BOOST_REQUIRE_EQUAL(superblock.data.free_inodes_count, 2540);
+	BOOST_REQUIRE_EQUAL(superblock.data.free_inodes_count, 2536);
 	BOOST_REQUIRE_EQUAL(superblock.data.super_block_number, 1);
 	BOOST_REQUIRE_EQUAL(superblock.data.block_size_log, 0);
 	BOOST_REQUIRE_EQUAL(superblock.data.fragment_size_log, 0);
 	BOOST_REQUIRE_EQUAL(superblock.data.blocks_per_group, 8192);
 	BOOST_REQUIRE_EQUAL(superblock.data.fragments_per_group, 8192);
 	BOOST_REQUIRE_EQUAL(superblock.data.inodes_per_group, 1280);
-	BOOST_REQUIRE_EQUAL(superblock.data.mount_count, 0);
+	BOOST_REQUIRE_EQUAL(superblock.data.mount_count, 3);
 	BOOST_REQUIRE_EQUAL(superblock.data.mount_count_max, 65535);
 	BOOST_REQUIRE_EQUAL(superblock.data.ext2_magic_number, 61267);
-	BOOST_REQUIRE_EQUAL(superblock.data.file_system_state, 1);
+	BOOST_REQUIRE_EQUAL(superblock.data.file_system_state, 0); // filesyste was mounted
 	BOOST_REQUIRE_EQUAL(superblock.data.error_behaviour, 1);
 	BOOST_REQUIRE_EQUAL(superblock.data.rev_level_minor, 0);
 	BOOST_REQUIRE_EQUAL(superblock.data.check_interval, 0);
@@ -181,7 +181,7 @@ BOOST_AUTO_TEST_CASE(read_group_des_table_test) {
 	BOOST_REQUIRE_EQUAL(gd1.data.address_inode_bitmap, 43);
 	BOOST_REQUIRE_EQUAL(gd1.data.address_inode_table, 44);
 	BOOST_REQUIRE_EQUAL(gd1.data.free_blocks, 7928);
-	BOOST_REQUIRE_EQUAL(gd1.data.free_inodes, 1262);
+	BOOST_REQUIRE_EQUAL(gd1.data.free_inodes, 1258);
 	BOOST_REQUIRE_EQUAL(gd1.data.count_directories, 4);
 
 	auto &gd2 = gd_table[1];
@@ -200,7 +200,7 @@ BOOST_AUTO_TEST_CASE(read_filesystem_root_test) {
 	BOOST_REQUIRE_EQUAL(root.data.type, 16877);
 	BOOST_REQUIRE_EQUAL(root.data.uid, 1000);
 	BOOST_REQUIRE_EQUAL(root.data.size, 1024);
-	BOOST_REQUIRE_EQUAL(root.data.access_time_last, 1419087092);
+	BOOST_REQUIRE_EQUAL(root.data.access_time_last, 1420835878);
 	BOOST_REQUIRE_EQUAL(root.data.creation_time, 1419087091);
 	BOOST_REQUIRE_EQUAL(root.data.mod_time, 1419087091);
 	BOOST_REQUIRE_EQUAL(root.data.del_time, 0);
@@ -302,23 +302,52 @@ BOOST_AUTO_TEST_CASE(visitor_test) {
 
 	std::stringstream ss;
 	ext2::print(ss, root);
-	BOOST_CHECK(ss.str() == "/lost+found\n/tmp\n/tmp/testdir\n/tmp/testdir/largefile2\n/tmp/testdir/largefile\n/tmp2\n/tmp2/testdir\n/tmp2/testdir/largefile2\n/tmp2/testdir/largefile\n/testfile\n");
+	std::string str = "/lost+found\n"
+		"/tmp\n"
+		"/tmp/testdir\n"
+		"/tmp/testdir/largefile2\n"
+		"/tmp/testdir/largefile\n"
+		"/tmp2\n"
+		"/tmp2/testdir\n"
+		"/tmp2/testdir/largefile2\n"
+		"/tmp2/testdir/largefile\n"
+		"/tmp2/testdir/link -> ../../testfile\n"
+		"/tmp2/testdir/tmp -> ../../tmp\n"
+		"/tmp2/testdir/tmp2_loop -> ../../tmp2\n"
+		"/tmp2/testdir/largefile_with_more_than_60_chars_01234567890123456789012345678901234567890123456789012345678901234567890123456789 -> largefile\n"
+		"/testfile\n";
+	std::cout << ss.str() << std::endl;
+	BOOST_CHECK(ss.str() == str);
+
 
 
 }
 
+/*
 BOOST_AUTO_TEST_CASE(print_fs_test) {
 	host_node image("image.img", 1024 * 1024 * 10);
 	auto filesystem = ext2::read_filesystem(image);
-	auto root = filesystem.get_root();
+	auto root = filesystem.get\_root();
 	filesystem.dump(std::cout);
 	
 	std::cout << "\n\n ### Content ###" << std::endl;
 	ext2::print(std::cout, root);
 
 }
+*/
 
 BOOST_AUTO_TEST_CASE(find_file_test) {
+	host_node image("image.img", 1024 * 1024 * 10);
+	auto filesystem = ext2::read_filesystem(image);
+	auto root = filesystem.get_root();
+
+	uint32_t inode_id = ext2::find_inode(root, { "tmp2", "testdir", "largefile" });
+	BOOST_REQUIRE_EQUAL(inode_id, 18);
+	
+}
+
+BOOST_AUTO_TEST_CASE(read_big_file_test) {
+
 	host_node image("image.img", 1024 * 1024 * 10);
 	auto filesystem = ext2::read_filesystem(image);
 	auto root = filesystem.get_root();
@@ -341,5 +370,10 @@ BOOST_AUTO_TEST_CASE(find_file_test) {
 	} else {
 		BOOST_ERROR("that should be a file");
 	}
-	
 }
+
+
+// asdasd/../asdasd/asdasd
+// asdasd/asd
+// auf symlink
+// mit symlink drin
