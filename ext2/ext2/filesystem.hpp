@@ -39,9 +39,9 @@ template <typename Filesystem> class inode : public inode_base<typename Filesyst
       public:
 	inode(fs_type *fs, uint64_t offset) : inode_base<typename Filesystem::device_type>(fs->device(), offset), fs(fs) {}
 
-	inline bool is_directory() const { return this->data.type & detail::directory; }
-	inline bool is_regular_file() const { return this->data.type & detail::regular_file; }
-	inline bool is_symbolic_link() const { return this->data.type & detail::symbolic_link; }
+	inline bool is_directory() const { return detail::has_flag(this->data.type, detail::directory); }
+	inline bool is_regular_file() const { return detail::has_flag(this->data.type, detail::regular_file); }
+	inline bool is_symbolic_link() const { return detail::has_flag(this->data.type, detail::symbolic_link); }
 	inline uint64_t size() const {
 		if (is_regular_file() && fs->large_files()) {
 			return (static_cast<uint64_t>(this->data.dir_acl) << 32) | (this->data.size);

@@ -13,6 +13,12 @@
 namespace ext2 {
 namespace detail {
 
+template<typename T1, typename T2>
+bool has_flag(T1 value, T2 flag) {
+	return (value & flag) == flag;
+}
+
+
 // The different styles of the filesystem
 enum file_system_states : uint16_t {
 	file_system_clean = 1, // filesystem is clean
@@ -178,36 +184,36 @@ enum inode_premissions : uint64_t {
 
 template <typename OStream> OStream &dump_inode_premissions(OStream &os, const uint16_t &val) {
 	os << "other: ";
-	if(val & oexec) os << 'x';
-	if(val & owrite) os << 'w';
-	if(val & oread) os << 'r';
+	if(has_flag(val, oexec)) os << 'x';
+	if(has_flag(val, owrite)) os << 'w';
+	if(has_flag(val, oread)) os << 'r';
 	os << ", group: ";
-	if(val & gexec) os << 'x';
-	if(val & gwrite) os << 'w';
-	if(val & gread) os << 'r';
+	if(has_flag(val, gexec)) os << 'x';
+	if(has_flag(val, gwrite)) os << 'w';
+	if(has_flag(val, gread)) os << 'r';
 	os << ", user: ";
-	if(val & uexec) os << 'x';
-	if(val & uwrite) os << 'w';
-	if(val & uread) os << 'r';
+	if(has_flag(val, uexec)) os << 'x';
+	if(has_flag(val, uwrite)) os << 'w';
+	if(has_flag(val, uread)) os << 'r';
 	return os;
 }
 
 template <typename OStream> OStream &operator<<(OStream &os, const inode_types &val) {
-	if (val & fifo) {
+	if (has_flag(val, fifo)) {
 		os << "Fifo";
-	} else if (val & character_device) {
+	} else if (has_flag(val, character_device)) {
 		os << "Character Device";
-	} else if (val & directory) {
+	} else if (has_flag(val, directory)) {
 		os << "Directory";
-	} else if (val & block_device) {
+	} else if (has_flag(val, block_device)) {
 		os << "Block Device";
-	} else if (val & block_device) {
+	} else if (has_flag(val, block_device)) {
 		os << "Block Device";
-	} else if (val & regular_file) {
+	} else if (has_flag(val, regular_file)) {
 		os << "Regular File";
-	} else if (val & symbolic_link) {
+	} else if (has_flag(val, symbolic_link)) {
 		os << "Symbolic Link";
-	} else if (val & unix_socket) {
+	} else if (has_flag(val, unix_socket)) {
 		os << "Unix Socket";
 	} else {
 		os << "Other";
@@ -370,7 +376,7 @@ struct __attribute__((packed)) superblock {
 	uint32_t block_size() const { return 1024 << block_size_log; }
 	uint32_t fragment_size() const { return 1024 << fragment_size_log; }
 
-	bool large_files() const { return features_readonly & readonly_feature_filesize_64; }
+	bool large_files() const { return has_flag(features_readonly, readonly_feature_filesize_64); }
 
 
 	template <typename OStream> void dump(OStream &os) const {
