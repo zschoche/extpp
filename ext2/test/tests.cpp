@@ -323,18 +323,17 @@ BOOST_AUTO_TEST_CASE(visitor_test) {
 
 }
 
-/*
 BOOST_AUTO_TEST_CASE(print_fs_test) {
 	host_node image("image.img", 1024 * 1024 * 10);
 	auto filesystem = ext2::read_filesystem(image);
-	auto root = filesystem.get\_root();
+	auto root = filesystem.get_root();
 	filesystem.dump(std::cout);
 	
 	std::cout << "\n\n ### Content ###" << std::endl;
 	ext2::print(std::cout, root);
 
 }
-*/
+//*/
 
 BOOST_AUTO_TEST_CASE(path_1_test) {
 	std::string str = "/tmp2/testdir/largefile";

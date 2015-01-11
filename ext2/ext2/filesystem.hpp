@@ -180,8 +180,8 @@ inline path path_from_string(const std::string &p) {
 	return result;
 }
 
-template <typename Device> class filesystem {
-      public:
+
+template <typename Device> struct filesystem {
 	typedef typename superblock<Device>::device_type device_type;
 	typedef inode<filesystem<Device> > inode_type;
 	typedef inodes::directory<filesystem<Device> > directory_type;
@@ -189,13 +189,7 @@ template <typename Device> class filesystem {
 	typedef inodes::symbolic_link<filesystem<Device> > symbolic_link_type;
 	typedef group_descriptor_table<Device> gd_table_type;
 
-      private:
-	superblock<Device> super_block;
-	gd_table_type gd_table;
-	uint32_t blocksize;
-
-      public:
-	filesystem(Device &d, uint64_t superblock_offset = 1024) : super_block(d, superblock_offset) {}
+	filesystem(Device &d, uint64_t superblock_offset = 1024) : super_block(&d, superblock_offset) {}
 
 	inline device_type *device() { return super_block.device(); }
 
@@ -203,12 +197,54 @@ template <typename Device> class filesystem {
 		super_block.load();
 		blocksize = super_block.data.block_size();
 		gd_table = read_group_descriptor_table(super_block);
+		block_bitmaps.reserve(gd_table.size());
+		inode_bitmaps.reserve(gd_table.size());
+		for (auto &item : gd_table) {
+			bitmap<device_type> bbitmap(device(), to_address(item.data.address_block_bitmap, 0), super_block.data.block_count / gd_table.size());
+			bitmap<device_type> ibitmap(device(), to_address(item.data.address_inode_bitmap, 0), super_block.data.block_count / gd_table.size());
+			bbitmap.load();
+			ibitmap.load();
+			block_bitmaps.push_back(std::move(bbitmap));
+			inode_bitmaps.push_back(std::move(ibitmap));
+		}
 	}
 
 	template <typename OStream> OStream &dump(OStream &os) const {
 		super_block.data.dump(os);
 		for (const auto &item : gd_table) {
 			item.data.dump(os);
+		}
+		for(int i = 0; i < gd_table.size(); i++) {
+			gd_table[i].data.dump(os);
+			os << "Allocated Blocks: ";
+			auto* bitmap = &block_bitmaps[i];
+			auto first = 0;
+			bool last = false;
+			for(int k = 0; k < bitmap->size(); k++) {
+				auto val = bitmap->get(k);
+				if(val == true && last == false) {
+					first = i*block_size()+k;
+				} else if(val == false && last == true) {
+					os << first << '-' << (i*block_size() + k)-1 << ' ';
+				}
+				last = val;
+			}
+			os << "\nAllocated Inodes: ";
+			bitmap = &inode_bitmaps[i];
+			first = 0;
+			last = false;
+			for(int k = 0; k < bitmap->size(); k++) {
+				auto val = bitmap->get(k);
+				if(val == true && last == false) {
+					first = i*block_size()+k;
+				} else if(val == false && last == true) {
+					os << first << '-' << (i*block_size() + k)-1 << ' ';
+				}
+				last = val;
+			}
+			os << "\n\n";
+
+
 		}
 		return os;
 	}
@@ -229,6 +265,13 @@ template <typename Device> class filesystem {
 	inline uint64_t to_address(uint32_t blockid, uint32_t block_offset) const { return (blockid * block_size()) + block_offset; }
 	inline bool large_files() const { return super_block.data.large_files(); }
 	inline uint32_t block_size() const { return blocksize; }
+
+      private:
+	superblock<Device> super_block;
+	gd_table_type gd_table;
+	std::vector<bitmap<device_type>> block_bitmaps;
+	std::vector<bitmap<device_type>> inode_bitmaps;
+	uint32_t blocksize;
 };
 
 template <typename Device> filesystem<Device> read_filesystem(Device &d) {
