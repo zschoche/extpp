@@ -13,6 +13,9 @@ namespace ext2 {
 		struct no_free_block_error : std::runtime_error {
 			no_free_block_error() : std::runtime_error("no_free_block_error") {}
 		};
+		struct no_free_inode_error : std::runtime_error {
+			no_free_inode_error() : std::runtime_error("no_free_inode_error") {}
+		};
 		
 	} /* namespace error */
 
