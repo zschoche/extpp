@@ -10,6 +10,7 @@ Viele Sachen sind einfach im Code mit //TODO gekennzeichnet.
 - Dateien vergrößern
 - Dateien verkleinern
 - Verzeichnis schreiben und erstellen
+- // unterstützen
 
 
 ? mirroring
