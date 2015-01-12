@@ -6,7 +6,6 @@ Viele Sachen sind einfach im Code mit //TODO gekennzeichnet.
 - reservierte block respektieren
 - reservierte inodes respektieren
 
-- Allocator für inodes
 - Dateien schreiben
 - Dateien vergrößern
 - Dateien verkleinern
