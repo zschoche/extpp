@@ -80,14 +80,14 @@ template <typename Device> class bitmap : public dynamic_block_data<Device> {
 		auto bit = index % 8;
 		uint8_t mask = 0b10000000 >> bit;
 		if (b) {
-			this->data()[byte] = this->data()[byte]() | mask;
+			this->data()[byte] = this->data()[byte] | mask;
 		} else {
 			mask = !mask;
-			this->data()[byte] = this->data()[byte]() & mask;
+			this->data()[byte] = this->data()[byte] & mask;
 		}
 	}
 
-	uint64_t find(bool bit, const uint64_t start_offset = 0) {
+	uint64_t find(bool bit, const uint64_t start_offset) {
 		auto offset = start_offset;
 		do {
 			if (get(offset) == bit)
@@ -100,9 +100,7 @@ template <typename Device> class bitmap : public dynamic_block_data<Device> {
 };
 template <typename Device> using superblock = block_data<Device, detail::superblock>;
 template <typename Device> using group_descriptor = block_data<Device, detail::group_descriptor>;
-
 template <typename Device> using group_descriptor_table = std::vector<group_descriptor<Device> >;
-template <typename Device> using inode_base = block_data<Device, detail::inode>;
 
 template <typename Device> superblock<Device> read_superblock(Device &d) {
 	superblock<Device> result(&d, 1024);
@@ -132,9 +130,6 @@ template <typename T> void write_vector(std::vector<T> &vec) {
 	}
 }
 
-/*
- * Superblock must be superblock<> type
- */
 template <typename Superblock> group_descriptor_table<typename Superblock::device_type> read_group_descriptor_table(const Superblock &superblock) {
 	uint64_t end = superblock.offset() + sizeof(superblock.data);
 	uint64_t pos = superblock.offset() + superblock.data.block_size();

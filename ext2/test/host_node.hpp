@@ -15,16 +15,16 @@
  */
 class host_node /* : public iposix::fs::i_fs_node*/ {
 
-	std::fstream file;
+	mutable std::fstream file;
 	const std::string filename;
 	const size_t size;
 
-	void open() {
+	void open() const {
 		file.close();
 		file.open(filename.c_str(),std::ios_base::in | std::ios_base::out | std::ios_base::binary);
 	}
 
-	bool is_ok() {
+	bool is_ok() const {
 		return file.is_open() && file.good();
 	}
 
@@ -36,7 +36,7 @@ class host_node /* : public iposix::fs::i_fs_node*/ {
 
 	
 
-	uint32_t read(const uint64_t offset, char *buffer, uint32_t length)  {
+	uint32_t read(const uint64_t offset, char *buffer, uint32_t length) const {
 		if(!is_ok()) open();
 
 		file.seekg(offset);

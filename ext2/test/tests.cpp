@@ -67,13 +67,13 @@ BOOST_AUTO_TEST_CASE(os_spec_test) {
 }
 struct test_device {
 
-	char data[4096];
+	mutable char data[4096];
 
 	test_device() { std::memset(data, 0, sizeof(data)); }
 
 	void write(uint64_t offset, const char *buffer, uint64_t size) { std::memcpy(data + offset, buffer, size); }
 
-	void read(uint64_t offset, char *buffer, uint64_t size) { std::memcpy(buffer, data + offset, size); }
+	void read(uint64_t offset, char *buffer, uint64_t size) const { std::memcpy(buffer, data + offset, size); }
 };
 
 BOOST_AUTO_TEST_CASE(block_device_test) {
@@ -475,3 +475,105 @@ BOOST_AUTO_TEST_CASE(find_file_symlink_2_test) {
 	BOOST_REQUIRE_EQUAL(inode_id, 15);
 	
 }
+
+BOOST_AUTO_TEST_CASE(bitmap_test) {
+
+	ext2::bitmap<test_device> b(nullptr, 0, 16);
+	BOOST_REQUIRE_EQUAL(b.get(0), false);
+	BOOST_REQUIRE_EQUAL(b.find(true, 0), -1);
+	b.set(0, true);
+	BOOST_REQUIRE_EQUAL(b.get(0), true);
+	BOOST_REQUIRE_EQUAL(b.find(true, 0), 0);
+	BOOST_REQUIRE_EQUAL(b.find(true, 1), 0);
+	BOOST_REQUIRE_EQUAL(b.find(true, 2), 0);
+	
+
+}
+
+BOOST_AUTO_TEST_CASE(alloc_block_test) {
+	std::remove("alloc_block_test.img");
+	{
+		std::ifstream source("image.img", std::ios::binary);
+    		std::ofstream dest("alloc_block_test.img", std::ios::binary);
+		std::istreambuf_iterator<char> begin_source(source);
+		std::istreambuf_iterator<char> end_source;
+		std::ostreambuf_iterator<char> begin_dest(dest); 
+		std::copy(begin_source, end_source, begin_dest);
+	}
+	host_node image("alloc_block_test.img", 1024 * 1024 * 10);
+
+	auto sb = ext2::read_superblock(image);
+	BOOST_REQUIRE_EQUAL(sb.data.free_block_count, 9770);
+	auto gdt = ext2::read_group_descriptor_table(sb);
+	BOOST_REQUIRE_EQUAL(gdt[0].data.free_blocks, 7928);
+	BOOST_REQUIRE_EQUAL(gdt[1].data.free_blocks, 1842);
+
+	auto filesystem = ext2::read_filesystem(image);
+	auto id = filesystem.alloc_block(0);
+
+
+	BOOST_REQUIRE_EQUAL(id, 216);
+
+	auto sb1 = ext2::read_superblock(image);
+	BOOST_REQUIRE_EQUAL(sb1.data.free_block_count, 9769);
+	auto gd_table = ext2::read_group_descriptor_table(sb1);
+	BOOST_REQUIRE_EQUAL(gd_table[0].data.free_blocks, 7927);
+	BOOST_REQUIRE_EQUAL(gd_table[1].data.free_blocks, 1842);
+
+	filesystem.free_block(id);
+
+	auto sb2 = ext2::read_superblock(image);
+	BOOST_REQUIRE_EQUAL(sb2.data.free_block_count, 9770);
+
+	auto gd_table1 = ext2::read_group_descriptor_table(sb2);
+	BOOST_REQUIRE_EQUAL(gd_table1[0].data.free_blocks, 7928);
+	BOOST_REQUIRE_EQUAL(gd_table1[1].data.free_blocks, 1842);
+
+	std::remove("alloc_block_test.img");
+}
+BOOST_AUTO_TEST_CASE(alloc_block_all_test) {
+	std::remove("alloc_block_test.img");
+	{
+		std::ifstream source("image.img", std::ios::binary);
+    		std::ofstream dest("alloc_block_test.img", std::ios::binary);
+		std::istreambuf_iterator<char> begin_source(source);
+		std::istreambuf_iterator<char> end_source;
+		std::ostreambuf_iterator<char> begin_dest(dest); 
+		std::copy(begin_source, end_source, begin_dest);
+	}
+	host_node image("alloc_block_test.img", 1024 * 1024 * 10);
+
+	auto sb = ext2::read_superblock(image);
+	BOOST_REQUIRE_EQUAL(sb.data.free_block_count, 9770);
+
+
+	auto filesystem = ext2::read_filesystem(image);
+	auto gdt = ext2::read_group_descriptor_table(sb);
+	BOOST_REQUIRE_EQUAL(gdt[0].data.free_blocks, 7928);
+	BOOST_REQUIRE_EQUAL(gdt[1].data.free_blocks, 1842);
+	std::vector<uint32_t> blocks;
+	while(sb.data.free_block_count != 0) {
+		blocks.push_back(filesystem.alloc_block(0));
+		//std::cout << "got block:" << blocks.back() << std::endl;
+		sb.load();
+		//gdt[0].load();
+		//gdt[1].load();
+		//std::cout << "0.blocks:" << gdt[0].data.free_blocks << std::endl;
+		//std::cout << "1.blocks:" << gdt[1].data.free_blocks << std::endl;
+		//std::cin.get();
+	}
+
+	for(auto& id : blocks) {
+		filesystem.free_block(id);
+	}
+
+	auto sb2 = ext2::read_superblock(image);
+	BOOST_REQUIRE_EQUAL(sb2.data.free_block_count, 9770);
+
+	auto gd_table1 = ext2::read_group_descriptor_table(sb2);
+	BOOST_REQUIRE_EQUAL(gd_table1[1].data.free_blocks, 1842);
+	BOOST_REQUIRE_EQUAL(gd_table1[0].data.free_blocks, 7928);
+
+	std::remove("alloc_block_test.img");
+}
+

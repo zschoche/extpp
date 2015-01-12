@@ -54,7 +54,7 @@ template <typename T, bool VISIT_DOT_AND_DOTDOT = false> struct visitor {
 	template <typename Inode> ops lookup(detail::directory_entry &entry, Inode &inode) {
 		ops result = explore;
 		_path.push_back(std::make_pair(entry.inode_id, &entry.name));
-		auto next = inode.get_fs()->get_inode(entry.inode_id);
+		auto next = inode.fs()->get_inode(entry.inode_id);
 		result = (*derived())(entry.name, &next);
 		if (result == explore) {
 			result = visit(next);
@@ -133,7 +133,7 @@ struct finder : visitor<finder<Filesystem>, true> {
 		if (p.is_relative() && cur_dir != nullptr) {
 			f.visit(*cur_dir);
 		} else {
-			auto root = link->get_fs()->get_root();
+			auto root = link->fs()->get_root();
 			f.visit(root);
 		}
 		inode_id = f.inode_id;
