@@ -456,6 +456,15 @@ BOOST_AUTO_TEST_CASE(find_file_2_test) {
 	
 }
 
+BOOST_AUTO_TEST_CASE(find_file_3_test) {
+	host_node image("image.img", 1024 * 1024 * 10);
+	auto filesystem = ext2::read_filesystem(image);
+	auto root = filesystem.get_root();
+
+	uint32_t inode_id = ext2::find_inode(root, "/tmp2/../tmp2////./testdir///largefile");
+	BOOST_REQUIRE_EQUAL(inode_id, 18);
+	
+}
 BOOST_AUTO_TEST_CASE(find_file_symlink_test) {
 	host_node image("image.img", 1024 * 1024 * 10);
 	auto filesystem = ext2::read_filesystem(image);

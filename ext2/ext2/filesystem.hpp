@@ -183,16 +183,8 @@ struct path {
 
 inline path path_from_string(const std::string &p) {
 	path result{p};
-	if (result.str.size() > 3) {
-		auto first = result.str.begin();
-		auto last = --(result.str.end());
-		if (*first == '/')
-			first++;
-		if (*last != '/')
-			last++;
-		auto range = boost::make_iterator_range(first, last);
-		boost::split(result.vec, range, [](auto c) { return c == '/'; });
-	}
+	boost::split(result.vec, result.str, [](auto c) { return c == '/'; });
+	result.vec.erase(std::remove(result.vec.begin(), result.vec.end(), ""), result.vec.end());
 	return result;
 }
 
