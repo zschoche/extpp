@@ -277,8 +277,9 @@ template <typename Device> struct filesystem {
 	/* returns a block id in the block group if related_block_id */
 	uint32_t alloc_block(uint32_t related_block_id = 0) { 
 		uint32_t result = allocator::alloc<error::no_free_block_error>(block_bitmaps, super_block.data.blocks_per_group, related_block_id);
-		gd_table[result % super_block.data.blocks_per_group].data.free_blocks--;
-		gd_table[result % super_block.data.blocks_per_group].save();
+		auto gdt_id = result / super_block.data.blocks_per_group;
+		gd_table[gdt_id].data.free_blocks--;
+		gd_table[gdt_id].save();
 		super_block.data.free_block_count--;
 		super_block.save();
 		return result;
@@ -286,25 +287,28 @@ template <typename Device> struct filesystem {
 		
 	void free_block(uint32_t id) { 
 		allocator::free(id, block_bitmaps, super_block.data.blocks_per_group);
-		gd_table[id % super_block.data.blocks_per_group].data.free_blocks++;
-		gd_table[id % super_block.data.blocks_per_group].save();
+		auto gdt_id = id / super_block.data.blocks_per_group;
+		gd_table[gdt_id].data.free_blocks++;
+		gd_table[gdt_id].save();
 		super_block.data.free_block_count++;
 		super_block.save();
 	}
 
 	uint32_t alloc_inode(uint32_t related_block_id = 0) { 
 		uint32_t result = allocator::alloc<error::no_free_inode_error>(inode_bitmaps, super_block.data.inodes_per_group, related_block_id);
-		gd_table[result % super_block.data.inodes_per_group].data.free_inodes--;
-		gd_table[result % super_block.data.inodes_per_group].save();
-		super_block.data.free_inode_count--;
+		auto gdt_id = result / super_block.data.blocks_per_group;
+		gd_table[gdt_id].data.free_inodes--;
+		gd_table[gdt_id].save();
+		super_block.data.free_inodes_count--;
 		super_block.save();
 		return result;
 	}
 	
 	void free_inode(uint32_t id) { 
-		allocator::free(id, inode_bitmaps, super_block.data.inode_per_group);
-		gd_table[id % super_block.data.inodes_per_group].data.free_inodes++;
-		gd_table[id % super_block.data.inodes_per_group].save();
+		allocator::free(id, inode_bitmaps, super_block.data.inodes_per_group);
+		auto gdt_id = id / super_block.data.blocks_per_group;
+		gd_table[gdt_id].data.free_inodes++;
+		gd_table[gdt_id].save();
 		super_block.data.free_inodes_count++;
 		super_block.save();
 	}

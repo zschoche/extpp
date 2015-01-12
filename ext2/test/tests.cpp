@@ -554,13 +554,7 @@ BOOST_AUTO_TEST_CASE(alloc_block_all_test) {
 	std::vector<uint32_t> blocks;
 	while(sb.data.free_block_count != 0) {
 		blocks.push_back(filesystem.alloc_block(0));
-		//std::cout << "got block:" << blocks.back() << std::endl;
 		sb.load();
-		//gdt[0].load();
-		//gdt[1].load();
-		//std::cout << "0.blocks:" << gdt[0].data.free_blocks << std::endl;
-		//std::cout << "1.blocks:" << gdt[1].data.free_blocks << std::endl;
-		//std::cin.get();
 	}
 
 	for(auto& id : blocks) {
@@ -577,3 +571,83 @@ BOOST_AUTO_TEST_CASE(alloc_block_all_test) {
 	std::remove("alloc_block_test.img");
 }
 
+BOOST_AUTO_TEST_CASE(alloc_inode_test) {
+	std::remove("alloc_inode_test.img");
+	{
+		std::ifstream source("image.img", std::ios::binary);
+    		std::ofstream dest("alloc_inode_test.img", std::ios::binary);
+		std::istreambuf_iterator<char> begin_source(source);
+		std::istreambuf_iterator<char> end_source;
+		std::ostreambuf_iterator<char> begin_dest(dest); 
+		std::copy(begin_source, end_source, begin_dest);
+	}
+	host_node image("alloc_inode_test.img", 1024 * 1024 * 10);
+
+	auto sb = ext2::read_superblock(image);
+	BOOST_REQUIRE_EQUAL(sb.data.free_inodes_count, 2536);
+	auto gdt = ext2::read_group_descriptor_table(sb);
+	BOOST_REQUIRE_EQUAL(gdt[0].data.free_inodes, 1258);
+	BOOST_REQUIRE_EQUAL(gdt[1].data.free_inodes, 1278);
+
+	auto filesystem = ext2::read_filesystem(image);
+	auto id = filesystem.alloc_inode(0);
+
+
+	BOOST_REQUIRE_EQUAL(id, 16);
+
+	auto sb1 = ext2::read_superblock(image);
+	BOOST_REQUIRE_EQUAL(sb1.data.free_inodes_count, 2535);
+	auto gd_table = ext2::read_group_descriptor_table(sb1);
+	BOOST_REQUIRE_EQUAL(gd_table[0].data.free_inodes, 1257);
+	BOOST_REQUIRE_EQUAL(gd_table[1].data.free_inodes, 1278);
+
+	filesystem.free_inode(id);
+
+	auto sb2 = ext2::read_superblock(image);
+	BOOST_REQUIRE_EQUAL(sb2.data.free_inodes_count, 2536);
+
+	auto gd_table1 = ext2::read_group_descriptor_table(sb2);
+	BOOST_REQUIRE_EQUAL(gd_table1[0].data.free_inodes, 1258);
+	BOOST_REQUIRE_EQUAL(gd_table1[1].data.free_inodes, 1278);
+
+	std::remove("alloc_inode_test.img");
+}
+BOOST_AUTO_TEST_CASE(alloc_inode_all_test) {
+	std::remove("alloc_inode_test.img");
+	{
+		std::ifstream source("image.img", std::ios::binary);
+    		std::ofstream dest("alloc_inode_test.img", std::ios::binary);
+		std::istreambuf_iterator<char> begin_source(source);
+		std::istreambuf_iterator<char> end_source;
+		std::ostreambuf_iterator<char> begin_dest(dest); 
+		std::copy(begin_source, end_source, begin_dest);
+	}
+	host_node image("alloc_inode_test.img", 1024 * 1024 * 10);
+
+	auto sb = ext2::read_superblock(image);
+	BOOST_REQUIRE_EQUAL(sb.data.free_inodes_count, 2536);
+
+
+	auto filesystem = ext2::read_filesystem(image);
+	auto gdt = ext2::read_group_descriptor_table(sb);
+	BOOST_REQUIRE_EQUAL(gdt[0].data.free_inodes, 1258);
+	BOOST_REQUIRE_EQUAL(gdt[1].data.free_inodes, 1278);
+	std::vector<uint32_t> blocks;
+	while(sb.data.free_inodes_count != 0) {
+		blocks.push_back(filesystem.alloc_inode(0));
+		sb.load();
+	}
+
+	for(auto& id : blocks) {
+		filesystem.free_inode(id);
+	}
+
+	auto sb2 = ext2::read_superblock(image);
+	BOOST_REQUIRE_EQUAL(sb2.data.free_inodes_count, 2536);
+
+	auto gd_table1 = ext2::read_group_descriptor_table(sb2);
+	BOOST_REQUIRE_EQUAL(gd_table1[1].data.free_inodes, 1278);
+	BOOST_REQUIRE_EQUAL(gd_table1[0].data.free_inodes, 1258);
+
+	std::remove("alloc_inode_test.img");
+}
