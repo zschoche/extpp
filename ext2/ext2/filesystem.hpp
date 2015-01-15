@@ -24,8 +24,12 @@ class fs_data : public block_data<typename Filesystem::device_type, T> {
 	fs_data(fs_type *fs, uint64_t offset) : block_data<typename Filesystem::device_type, T>(fs->device(), offset), _fs(fs) {}
 
 
-	fs_type* fs() { return _fs; }
-	const fs_type* fs() const { return _fs; }
+	inline fs_type* fs() { return _fs; }
+	inline const fs_type* fs() const { return _fs; }
+
+	uint32_t get_inode_block_id() const { 
+		return this->offset() / fs()->block_size();
+	}
 };
 
 
@@ -54,6 +58,37 @@ template <typename Filesystem> class inode : public fs_data<Filesystem, detail::
 		}
 	}
 
+	void set_block_id(uint32_t block_index, uint32_t block_id) {
+		if (block_index < 12) {
+			// direct pointer
+			this->data.block_pointer_direct[block_index] = block_id;
+		} else if (block_index < 268) {
+			block_index -= 12;
+			auto bpi_id = this->data.block_pointer_indirect[0];
+			if(bpi_id == 0) {
+				/* we are going to need a new block */
+				bpi_id = this->fs()->alloc_block(this->get_inode_block_id());
+				this->data.block_pointer_indirect[0] = bpi_id;
+				this->save();
+			}
+			detail::write_to_device(*(this->fs()->device()), this->fs()->to_address(bpi_id, block_index * sizeof(uint32_t)), block_id);
+		} else {
+			throw "this is not ready yet";
+		}
+	}
+
+	inline void set_size(uint64_t new_size) {
+		if (is_regular_file() && this->fs()->large_files()) {
+			this->data.size = new_size;
+			new_size >>= 32;
+			this->data.dir_acl = new_size;
+		} else {
+			if(std::numeric_limits<uint32_t>::max() < new_size) {
+				throw error::file_is_full_error();
+			}
+			this->data.size = new_size;
+		}
+	}
       public:
 	inode(fs_type *fs, uint64_t offset) : fs_data<Filesystem, detail::inode>(fs, offset) {}
 
@@ -80,7 +115,35 @@ template <typename Filesystem> class inode : public fs_data<Filesystem, detail::
 			length -= block_length;
 		} while (length > 0);
 	}
-	void write(uint64_t offset, const char *buffer, uint64_t length) {} // TODO: implement!
+	void write(uint64_t offset, const char *buffer, uint64_t length) {
+		auto buffer_offset = 0;
+		uint32_t last_block_id = this->get_inode_block_id();
+		if(offset >= size()) throw error::out_of_range_error();
+
+		do {
+			auto block_index = offset / this->fs()->block_size();
+			auto block_offset = offset % this->fs()->block_size();
+			auto block_length = std::min(this->fs()->block_size() - block_offset, length);
+			auto block_id = get_block_id(block_index);
+			if(block_id == 0) {
+				/* we are going to need a new block */
+				auto new_block_id = this->fs()->alloc_block(last_block_id);
+				set_block_id(block_index, new_block_id);
+				block_id = new_block_id;
+
+			}
+			this->fs()->device()->write(this->fs()->to_address(block_id, block_offset), &buffer[buffer_offset], block_length);
+			last_block_id = block_id;
+			buffer_offset += block_length;
+			offset += block_length;
+			if(offset > size()) {
+				set_size(offset);
+				this->save();
+			}
+			length -= block_length;
+		} while (length > 0);
+	
+	} // TODO: implement!
 
 };
 template <typename OStream, typename Inode> void read_inode_content(OStream &os, Inode &inode) {
@@ -308,6 +371,7 @@ template <typename Device> struct filesystem {
 	inline uint64_t to_address(uint32_t blockid, uint32_t block_offset) const { return (blockid * block_size()) + block_offset; }
 	inline bool large_files() const { return super_block.data.large_files(); }
 	inline uint32_t block_size() const { return blocksize; }
+	//inline uint32_t blocks_per_group() const { return super_block.data.blocks_per_group; }
 
 	template <typename OStream> OStream &dump(OStream &os) const {
 		super_block.data.dump(os);

@@ -233,6 +233,8 @@ BOOST_AUTO_TEST_CASE(read_root_content_test) {
 
 	auto filesystem = ext2::read_filesystem(image);
 	auto root = filesystem.get_root();
+
+	BOOST_REQUIRE_EQUAL(root.get_inode_block_id(), 44);
 	if (auto *dir = ext2::to_directory(&root)) {
 		ext2::directory_entry_list list = dir->read_entrys();
 		/*
@@ -659,4 +661,77 @@ BOOST_AUTO_TEST_CASE(alloc_inode_all_test) {
 	BOOST_REQUIRE_EQUAL(gd_table1[0].data.free_inodes, 1258);
 
 	std::remove("alloc_inode_test.img");
+}
+
+
+
+BOOST_AUTO_TEST_CASE(change_file_test) {
+	std::remove("change_file_test.img");
+	{
+		std::ifstream source("image.img", std::ios::binary);
+    		std::ofstream dest("change_file_test.img", std::ios::binary);
+		std::istreambuf_iterator<char> begin_source(source);
+		std::istreambuf_iterator<char> end_source;
+		std::ostreambuf_iterator<char> begin_dest(dest); 
+		std::copy(begin_source, end_source, begin_dest);
+	}
+	host_node image("change_file_test.img", 1024 * 1024 * 10);
+
+	auto filesystem = ext2::read_filesystem(image);
+	auto root = filesystem.get_root();
+
+	uint32_t id = ext2::find_inode(root, "/testfile");
+	auto inode = filesystem.get_inode(id);
+	auto* file = ext2::to_file(&inode);
+	BOOST_CHECK(file != nullptr);
+	std::string msg = "NEW";
+	file->write(4, msg.c_str(), msg.size());
+	std::stringstream ss;
+	ss << *file;
+	BOOST_CHECK(ss.str() == "ThisNEW a test file.\n");
+	std::remove("change_file_test.img");
+}
+
+
+
+BOOST_AUTO_TEST_CASE(ext_file_test) {
+	std::remove("ext_file_test.img");
+	{
+		std::ifstream source("image.img", std::ios::binary);
+    		std::ofstream dest("ext_file_test.img", std::ios::binary);
+		std::istreambuf_iterator<char> begin_source(source);
+		std::istreambuf_iterator<char> end_source;
+		std::ostreambuf_iterator<char> begin_dest(dest); 
+		std::copy(begin_source, end_source, begin_dest);
+	}
+	host_node image("ext_file_test.img", 1024 * 1024 * 10);
+
+	auto filesystem = ext2::read_filesystem(image);
+	auto root = filesystem.get_root();
+
+	uint32_t id = ext2::find_inode(root, "/testfile");
+	auto inode = filesystem.get_inode(id);
+	auto* file = ext2::to_file(&inode);
+	BOOST_CHECK(file != nullptr);
+	std::string msg = " file will need more than one block of data: 1234567890qwertzuiopasdfghjklyxcvbnm1234567890qwertzuiopasdfghjklyxcvbnm1234567890qwertzuiopasdfghjklyxcvbnm1234567890qwertzuiopasdfghjklyxcvbnm1234567890qwertzuiopasdfghjklyxcvbnm1234567890qwertzuiopasdfghjklyxcvbnm1234567890qwertzuiopasdfghjklyxcvbnm1234567890qwertzuiopasdfghjklyxcvbnm1234567890qwertzuiopasdfghjklyxcvbnm1234567890qwertzuiopasdfghjklyxcvbnm1234567890qwertzuiopasdfghjklyxcvbnm1234567890qwertzuiopasdfghjklyxcvbnm1234567890qwertzuiopasdfghjklyxcvbnm1234567890qwertzuiopasdfghjklyxcvbnm1234567890qwertzuiopasdfghjklyxcvbnm1234567890qwertzuiopasdfghjklyxcvbnm1234567890qwertzuiopasdfghjklyxcvbnm1234567890qwertzuiopasdfghjklyxcvbnm1234567890qwertzuiopasdfghjklyxcvbnm1234567890qwertzuiopasdfghjklyxcvbnm1234567890qwertzuiopasdfghjklyxcvbnm1234567890qwertzuiopasdfghjklyxcvbnm1234567890qwertzuiopasdfghjklyxcvbnm1234567890qwertzuiopasdfghjklyxcvbnm1234567890qwertzuiopasdfghjklyxcvbnm1234567890qwertzuiopasdfghjklyxcvbnm1234567890qwertzuiopasdfghjklyxcvbnm1234567890qwertzuiopasdfghjklyxcvbnm1234567890qwertzuiopasdfghjklyxcvbnm1234567890qwertzuiopasdfghjklyxcvbnm1234567890qwertzuiopasdfghjklyxcvbnm1234567890qwertzuiopasdfghjklyxcvbnm1234567890qwertzuiopasdfghjklyxcvbnm1234567890qwertzuiopasdfghjklyxcvbnm1234567890qwertzuiopasdfghjklyxcvbnm1234567890qwertzuiopasdfghjklyxcvbnm1234567890qwertzuiopasdfghjklyxcvbnm1234567890qwertzuiopasdfghjklyxcvbnm1234567890qwertzuiopasdfghjklyxcvbnm1234567890qwertzuiopasdfghjklyxcvbnm1234567890qwertzuiopasdfghjklyxcvbnm1234567890qwertzuiopasdfghjklyxcvbnm1234567890qwertzuiopasdfghjklyxcvbnm1234567890qwertzuiopasdfghjklyxcvbnm1234567890qwertzuiopasdfghjklyxcvbnm1234567890qwertzuiopasdfghjklyxcvbnm1234567890qwertzuiopasdfghjklyxcvbnm1234567890qwertzuiopasdfghjklyxcvbnm1234567890qwertzuiopasdfghjklyxcvbnm1234567890qwertzuiopasdfghjklyxcvbnm1234567890qwertzuiopasdfghjklyxcvbnm1234567890qwertzuiopasdfghjklyxcvbnm1234567890qwertzuiopasdfghjklyxcvbnm1234567890qwertzuiopasdfghjklyxcvbnm";
+	BOOST_CHECK(msg.size() > 1024);
+	file->write(4, msg.c_str(), msg.size());
+
+	auto filesystem2= ext2::read_filesystem(image);
+	auto root2 = filesystem2.get_root();
+
+	uint32_t id2 = ext2::find_inode(root2, "/testfile");
+	auto inode2 = filesystem2.get_inode(id2);
+	auto* file2 = ext2::to_file(&inode2);
+	BOOST_CHECK(file2 != nullptr);
+
+	std::stringstream ss;
+	ss << *file2;
+	std::stringstream ss2;
+	ss2 << *file;
+	BOOST_CHECK(ss.str() == "This" + msg);
+	BOOST_CHECK(ss2.str() == "This" + msg);
+	BOOST_REQUIRE_EQUAL(file->size(), msg.size() + 4);
+	BOOST_REQUIRE_EQUAL(file2->size(), msg.size() + 4);
+	std::remove("ext_file_test.img");
 }

@@ -16,6 +16,12 @@ namespace ext2 {
 		struct no_free_inode_error : std::runtime_error {
 			no_free_inode_error() : std::runtime_error("no_free_inode_error") {}
 		};
+		struct out_of_range_error : std::runtime_error {
+			out_of_range_error() : std::runtime_error("out_of_range_error") {}
+		};
+		struct file_is_full_error : std::runtime_error {
+			file_is_full_error() : std::runtime_error("file_is_full_error") {}
+		};
 		
 	} /* namespace error */
 
