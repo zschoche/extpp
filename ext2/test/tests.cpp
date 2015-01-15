@@ -157,7 +157,7 @@ BOOST_AUTO_TEST_CASE(write_read_vector_test) {
 
 	auto vec = ext2::read_vector<block>(d, 0, msg.size());
 	BOOST_REQUIRE_EQUAL(vec.size(), msg.size());
-	for (int i = 0; i < msg.size(); i++) {
+	for (auto i = 0u; i < msg.size(); i++) {
 		BOOST_REQUIRE_EQUAL(vec[i].data, msg[i]);
 	}
 
@@ -165,7 +165,7 @@ BOOST_AUTO_TEST_CASE(write_read_vector_test) {
 		item.data = 'a';
 	}
 	ext2::write_vector(vec);
-	for (int i = 0; i < msg.size(); i++) {
+	for (auto i = 0u; i < msg.size(); i++) {
 		BOOST_REQUIRE_EQUAL(d.data[i], 'a');
 	}
 }
@@ -343,7 +343,7 @@ BOOST_AUTO_TEST_CASE(path_1_test) {
 	std::vector<std::string> v = { "tmp2", "testdir", "largefile" };
 	BOOST_REQUIRE_EQUAL(p.str, str);
 	BOOST_REQUIRE_EQUAL(p.vec.size(), 3);
-	for(int i = 0; i < v.size(); i++) {
+	for(auto i = 0u; i < v.size(); i++) {
 		BOOST_CHECK(v[i] == p.vec[i]);
 
 	}
@@ -354,7 +354,7 @@ BOOST_AUTO_TEST_CASE(path_2_test) {
 	std::vector<std::string> v = { "tmp2", "testdir", "largefile" };
 	BOOST_REQUIRE_EQUAL(p.str, str);
 	BOOST_REQUIRE_EQUAL(p.vec.size(), 3);
-	for(int i = 0; i < v.size(); i++) {
+	for(auto i = 0u; i < v.size(); i++) {
 		BOOST_CHECK(v[i] == p.vec[i]);
 
 	}
@@ -365,7 +365,7 @@ BOOST_AUTO_TEST_CASE(path_3_test) {
 	std::vector<std::string> v = { "tmp2", "testdir", "largefile" };
 	BOOST_REQUIRE_EQUAL(p.str, str);
 	BOOST_REQUIRE_EQUAL(p.vec.size(), 3);
-	for(int i = 0; i < v.size(); i++) {
+	for(auto i = 0u; i < v.size(); i++) {
 		BOOST_CHECK(v[i] == p.vec[i]);
 
 	}
@@ -377,7 +377,7 @@ BOOST_AUTO_TEST_CASE(path_4_test) {
 	std::vector<std::string> v = { "tmp2", "testdir", "largefile" };
 	BOOST_REQUIRE_EQUAL(p.str, str);
 	BOOST_REQUIRE_EQUAL(p.vec.size(), 3);
-	for(int i = 0; i < v.size(); i++) {
+	for(auto i = 0u; i < v.size(); i++) {
 		BOOST_CHECK(v[i] == p.vec[i]);
 
 	}

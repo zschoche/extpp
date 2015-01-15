@@ -148,7 +148,7 @@ template <typename Filesystem> class inode : public fs_data<Filesystem, detail::
 };
 template <typename OStream, typename Inode> void read_inode_content(OStream &os, Inode &inode) {
 	std::array<char, 255> buffer;
-	auto offset = 0;
+	auto offset = 0u;
 	const auto size = inode.size();
 	do {
 		auto length = std::min<uint64_t>(size - offset, buffer.size());
@@ -192,7 +192,7 @@ template <typename Filesystem> struct symbolic_link : inode<Filesystem> {
 template <typename Filesystem> struct directory : inode<Filesystem> {
 
 	directory_entry_list read_entrys() {
-		auto offset = 0;
+		auto offset = 0u;
 		directory_entry_list result;
 		result.reserve(8);
 		do {
@@ -253,15 +253,16 @@ inline path path_from_string(const std::string &p) {
 
 namespace allocator {
 
+	constexpr uint64_t NOT_FOUND = static_cast<uint64_t>(-1);
 	template<typename NotFoundError, typename BitmapVec>
 	uint32_t alloc(BitmapVec& bitmaps, uint32_t elements_per_group, uint32_t related_block_id = 0) { 
-		uint64_t index = -1;
+		uint64_t index = NOT_FOUND;
 		uint32_t bg_index_start = related_block_id / elements_per_group;
 		uint32_t bg_index = bg_index_start;
 		uint32_t result;
 		do {
 			index = bitmaps[bg_index].find(false, related_block_id % elements_per_group); //TODO: respect reserved blocks
-			if(index != -1) {
+			if(index != NOT_FOUND) {
 				result = (bg_index*elements_per_group) + index;
 				break;
 			}
@@ -270,7 +271,7 @@ namespace allocator {
 				bg_index = 0;
 			}
 		} while(bg_index != bg_index_start);
-		if(index == -1) {
+		if(index == NOT_FOUND) {
 			throw NotFoundError();
 		}
 		bitmaps[bg_index].set(index, true);
@@ -378,13 +379,13 @@ template <typename Device> struct filesystem {
 		for (const auto &item : gd_table) {
 			item.data.dump(os);
 		}
-		for(int i = 0; i < gd_table.size(); i++) {
+		for(auto i = 0u; i < gd_table.size(); i++) {
 			gd_table[i].data.dump(os);
 			os << "Allocated Blocks: ";
 			auto* bitmap = &block_bitmaps[i];
 			auto first = 0;
 			bool last = false;
-			for(int k = 0; k < bitmap->size(); k++) {
+			for(auto k = 0u; k < bitmap->size(); k++) {
 				auto val = bitmap->get(k);
 				if(val == true && last == false) {
 					first = (i*super_block.data.blocks_per_group)+k;
@@ -397,7 +398,7 @@ template <typename Device> struct filesystem {
 			bitmap = &inode_bitmaps[i];
 			first = 0;
 			last = false;
-			for(int k = 0; k < bitmap->size(); k++) {
+			for(auto k = 0u; k < bitmap->size(); k++) {
 				auto val = bitmap->get(k);
 				if(val == true && last == false) {
 					first = i*super_block.data.inodes_per_group+k;

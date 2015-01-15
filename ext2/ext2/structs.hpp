@@ -469,7 +469,7 @@ enum directory_entry_type : uint8_t {
 };
 } /* namespace directory_entry_type */
 
-struct __attribute__((packed)) directory_entry {
+struct directory_entry {
 	uint32_t inode_id;
 	uint16_t size;
 	uint8_t name_size;

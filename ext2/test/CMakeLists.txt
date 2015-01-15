@@ -8,7 +8,6 @@ add_definitions("-Wall")
 add_definitions("-fexceptions")
 
 #defines
-#add_definitions(-DBOOST_ASIO_DYN_LINK)
 if(APPLE)
 	message("osx detected")
 else()
