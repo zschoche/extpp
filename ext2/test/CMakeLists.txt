@@ -11,7 +11,7 @@ add_definitions("-fexceptions")
 if(APPLE)
 	message("osx detected")
 else()
-	add_definitions(BOOST_TEST_DYN_LINK)
+	add_definitions(-DBOOST_TEST_DYN_LINK)
 endif()
 #tests
 add_executable(host_tests tests.cpp) 
