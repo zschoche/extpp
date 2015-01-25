@@ -7,7 +7,6 @@ Viele Sachen sind einfach im Code mit //TODO gekennzeichnet.
 - reservierte block respektieren
 - reservierte inodes respektieren
 
-- Dateien verkleinern
 - Verzeichnis erstellen
 - sym_link erstellen
 

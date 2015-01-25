@@ -733,6 +733,29 @@ BOOST_AUTO_TEST_CASE(ext_file_test) {
 	BOOST_CHECK(ss2.str() == "This" + msg);
 	BOOST_REQUIRE_EQUAL(file->size(), msg.size() + 4);
 	BOOST_REQUIRE_EQUAL(file2->size(), msg.size() + 4);
+
+
+	//resize again
+	file->set_size(10);
+
+	auto filesystem3 = ext2::read_filesystem(image);
+	auto root3 = filesystem3.get_root();
+
+	uint32_t id3 = ext2::find_inode(root3, "/testfile");
+	auto inode3 = filesystem3.get_inode(id3);
+	auto* file3 = ext2::to_file(&inode3);
+	BOOST_CHECK(file3 != nullptr);
+
+	std::stringstream ss3;
+	ss3 << *file3;
+	std::stringstream ss4;
+	ss4 << *file;
+	BOOST_CHECK(ss3.str() == "This file ");
+	BOOST_CHECK(ss4.str() == "This file ");
+	BOOST_REQUIRE_EQUAL(file3->size(), 10);
+	BOOST_REQUIRE_EQUAL(file->size(), 10);
+
+
 	std::remove("ext_file_test.img");
 }
 
