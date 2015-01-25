@@ -852,3 +852,46 @@ BOOST_AUTO_TEST_CASE(ext_create_symlink_2_test) {
 	}
 	std::remove("ext_create_symlink_2_test.img");
 }
+BOOST_AUTO_TEST_CASE(ext_create_dir_test) {
+	std::remove("ext_create_dir_test.img");
+	{
+		std::ifstream source("image.img", std::ios::binary);
+    		std::ofstream dest("ext_create_dir_test.img", std::ios::binary);
+		std::istreambuf_iterator<char> begin_source(source);
+		std::istreambuf_iterator<char> end_source;
+		std::ostreambuf_iterator<char> begin_dest(dest); 
+		std::copy(begin_source, end_source, begin_dest);
+	}
+	host_node image("ext_create_dir_test.img", 1024 * 1024 * 10);
+	auto filesystem = ext2::read_filesystem(image);
+	auto root = filesystem.get_root();
+	auto id_dir = filesystem.create_directory(2);
+	if(auto* dir = ext2::to_directory(&root)) {
+		auto entry = ext2::create_directory_entry("new_dir", id_dir.first, id_dir.second);
+		*dir << entry;
+		auto entrys = dir->read_entrys();
+		BOOST_CHECK(std::find_if(entrys.begin(), entrys.end(),[&] (auto& e) { return e.inode_id == id_dir.first && e.name == "new_dir"; }) != entrys.end());
+		root.load();
+		uint32_t id1 = ext2::find_inode(root, "/new_dir");
+		uint32_t id2 = ext2::find_inode(root, "/new_dir/.");
+		BOOST_REQUIRE_EQUAL(id1, id2);
+		BOOST_REQUIRE_EQUAL(id1, id_dir.first);
+		BOOST_REQUIRE_EQUAL(ext2::find_inode(root, "/new_dir/.."), 2);
+
+		auto inode = filesystem.get_inode(id1);
+		if(auto* dir = ext2::to_directory(&inode)) {
+			auto entrys = dir->read_entrys();
+			BOOST_REQUIRE_EQUAL(entrys.size(), 2);
+			BOOST_CHECK(entrys[0].name == ".");
+			BOOST_CHECK(entrys[0].inode_id == id_dir.first);
+			BOOST_CHECK(entrys[1].name == "..");
+			BOOST_CHECK(entrys[1].inode_id == 2);
+
+		} else {
+			BOOST_ERROR("this is not a directory");
+		}
+	} else {
+		BOOST_ERROR("root is not a directory");
+	}
+	std::remove("ext_create_dir_test.img");
+}

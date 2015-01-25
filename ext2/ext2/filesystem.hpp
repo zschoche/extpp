@@ -188,9 +188,6 @@ template <typename Device> struct filesystem {
 
 	template <typename OStream> OStream &dump(OStream &os) const {
 		super_block.data.dump(os);
-		for (const auto &item : gd_table) {
-			item.data.dump(os);
-		}
 		for (auto i = 0u; i < gd_table.size(); i++) {
 			gd_table[i].data.dump(os);
 			os << "Allocated Blocks: ";
@@ -238,6 +235,17 @@ template <typename Device> struct filesystem {
 			}
 		}
 		return id_inode;
+	}
+	std::pair<uint32_t, inode_type> create_directory(uint32_t parent_directory, uint64_t permissions = detail::inode_permissions_default, uint16_t uid = 0, uint16_t gid = 0,
+						    uint32_t flags = 0) { 
+		auto id_dir = create_inode(detail::inode_types::directory, permissions, uid, gid, flags);
+		if(auto* dir = to_directory(&id_dir.second)) {
+			directory_entry_list list;
+			list.push_back(detail::directory_entry{ id_dir.first, 9, 1, detail::directory_entry_type::directory, "." });
+			list.push_back(detail::directory_entry{ parent_directory, 10, 1, detail::directory_entry_type::directory, ".." });
+			dir->write_entrys(list);
+		}
+		return id_dir;
 	}
 
       private:
