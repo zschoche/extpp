@@ -228,6 +228,17 @@ template <typename Device> struct filesystem {
 						    uint32_t flags = 0) {
 		return create_inode(detail::inode_types::regular_file, permissions, uid, gid, flags);
 	}
+	std::pair<uint32_t, inode_type> create_symbolic_link(const std::string target, uint64_t permissions = detail::inode_permissions_default, uint16_t uid = 0, uint16_t gid = 0,
+						    uint32_t flags = 0) { 
+
+		auto id_inode = create_inode(detail::inode_types::symbolic_link, permissions, uid, gid, flags);
+		if(!target.empty()) {
+			if(auto* symlink = to_symbolic_link(&id_inode.second)) {
+				symlink->set_target(target);
+			}
+		}
+		return id_inode;
+	}
 
       private:
 	superblock<Device> super_block;

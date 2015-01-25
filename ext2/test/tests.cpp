@@ -790,3 +790,65 @@ BOOST_AUTO_TEST_CASE(ext_create_file_test) {
 	}
 	std::remove("ext_create_file_test.img");
 }
+
+BOOST_AUTO_TEST_CASE(ext_create_symlink_test) {
+	std::remove("ext_create_symlink_test.img");
+	{
+		std::ifstream source("image.img", std::ios::binary);
+    		std::ofstream dest("ext_create_symlink_test.img", std::ios::binary);
+		std::istreambuf_iterator<char> begin_source(source);
+		std::istreambuf_iterator<char> end_source;
+		std::ostreambuf_iterator<char> begin_dest(dest); 
+		std::copy(begin_source, end_source, begin_dest);
+	}
+	host_node image("ext_create_symlink_test.img", 1024 * 1024 * 10);
+	auto filesystem = ext2::read_filesystem(image);
+	auto root = filesystem.get_root();
+	auto id_file = filesystem.create_symbolic_link("./testfile");
+	if(auto* dir = ext2::to_directory(&root)) {
+		auto entry = ext2::create_directory_entry("symlink", id_file.first, id_file.second);
+		*dir << entry;
+		auto entrys = dir->read_entrys();
+		BOOST_CHECK(std::find_if(entrys.begin(), entrys.end(),[&] (auto& e) { return e.inode_id == id_file.first && e.name == "symlink"; }) != entrys.end());
+		root.load();
+		uint32_t id1 = ext2::find_inode(root, "/symlink");
+		uint32_t id2 = ext2::find_inode(root, "/testfile");
+		BOOST_REQUIRE_EQUAL(id1, id2);
+		BOOST_REQUIRE_EQUAL(id1, 13);
+
+	} else {
+		BOOST_ERROR("root is not a directory");
+	}
+	std::remove("ext_create_symlink_test.img");
+}
+
+BOOST_AUTO_TEST_CASE(ext_create_symlink_2_test) {
+	std::remove("ext_create_symlink_2_test.img");
+	{
+		std::ifstream source("image.img", std::ios::binary);
+    		std::ofstream dest("ext_create_symlink_2_test.img", std::ios::binary);
+		std::istreambuf_iterator<char> begin_source(source);
+		std::istreambuf_iterator<char> end_source;
+		std::ostreambuf_iterator<char> begin_dest(dest); 
+		std::copy(begin_source, end_source, begin_dest);
+	}
+	host_node image("ext_create_symlink_2_test.img", 1024 * 1024 * 10);
+	auto filesystem = ext2::read_filesystem(image);
+	auto root = filesystem.get_root();
+	auto id_file = filesystem.create_symbolic_link("/tmp2/testdir/largefile_with_more_than_60_chars_01234567890123456789012345678901234567890123456789012345678901234567890123456789");
+	if(auto* dir = ext2::to_directory(&root)) {
+		auto entry = ext2::create_directory_entry("symlink", id_file.first, id_file.second);
+		*dir << entry;
+		auto entrys = dir->read_entrys();
+		BOOST_CHECK(std::find_if(entrys.begin(), entrys.end(),[&] (auto& e) { return e.inode_id == id_file.first && e.name == "symlink"; }) != entrys.end());
+		root.load();
+		uint32_t id1 = ext2::find_inode(root, "/symlink");
+		uint32_t id2 = ext2::find_inode(root, "/tmp2/testdir/largefile_with_more_than_60_chars_01234567890123456789012345678901234567890123456789012345678901234567890123456789");
+		BOOST_REQUIRE_EQUAL(id1, id2);
+		BOOST_REQUIRE_EQUAL(id1, 18);
+
+	} else {
+		BOOST_ERROR("root is not a directory");
+	}
+	std::remove("ext_create_symlink_2_test.img");
+}

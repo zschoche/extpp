@@ -4,7 +4,7 @@ project(test)
 add_definitions("-std=c++1y")
 add_definitions("-Wall")
 #add_definitions("-O3")
-#add_definitions("-g")
+add_definitions("-g")
 add_definitions("-fexceptions")
 
 #defines

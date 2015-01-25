@@ -75,7 +75,7 @@ template <typename Filesystem> class inode : public fs_data<Filesystem, detail::
 
       public:
 	inline void set_size(uint64_t new_size) {
-		uint64_t old_size = this->data.size;
+		uint64_t old_size = this->size();
 		if (is_regular_file() && this->fs()->large_files()) {
 			this->data.size = new_size;
 			new_size >>= 32;
@@ -90,7 +90,7 @@ template <typename Filesystem> class inode : public fs_data<Filesystem, detail::
 		this->data.count_sector = new_size / 512;
 
 		if(new_size < old_size) {
-			// release unsued blocks
+			//release unsued blocks
 			auto block_index = new_size / this->fs()->block_size();
 			block_index++;
 			uint32_t blockid = get_block_id(block_index);
@@ -105,6 +105,12 @@ template <typename Filesystem> class inode : public fs_data<Filesystem, detail::
 			auto block_index_start = old_size / this->fs()->block_size();
 			auto block_index_end = new_size / this->fs()->block_size();
 			auto block_id = get_block_id(block_index_start);
+			if(block_id == 0) { 
+				//the file is empty
+				block_id = this->fs()->alloc_block();
+				set_block_id(block_index_start, block_id);
+			}
+
 			while(block_index_start < block_index_end) {
 				block_id = this->fs()->alloc_block(block_id);
 				++block_index_start;
@@ -143,7 +149,7 @@ template <typename Filesystem> class inode : public fs_data<Filesystem, detail::
 	}
 	void write(uint64_t offset, const char *buffer, uint64_t length) {
 		auto buffer_offset = 0;
-		if (offset >= size())
+		if (offset > size())
 			throw error::out_of_range_error();
 
 		if(offset + length > this->size()) {
@@ -192,10 +198,10 @@ template <typename Filesystem> struct block_device : inode<Filesystem> {};
 template <typename Filesystem> struct fifo : inode<Filesystem> {};
 template <typename Filesystem> struct symbolic_link : inode<Filesystem> {
 
-	std::string get_target() {
+	std::string get_target() const {
 		/* http://www.nongnu.org/ext2-doc/ext2.html#DEF-SYMBOLIC-LINKS */
 		if (this->size() < 60) {
-			const char *cstring = reinterpret_cast<char *>(&(this->data.block_pointer_direct[0]));
+			const char *cstring = reinterpret_cast<const char *>(&(this->data.block_pointer_direct[0]));
 			std::string result(cstring, this->size());
 			return result;
 		}
@@ -203,6 +209,30 @@ template <typename Filesystem> struct symbolic_link : inode<Filesystem> {
 		std::stringstream ss;
 		read_inode_content(ss, *this);
 		return ss.str();
+	}
+
+	void set_target(const std::string &target) {
+		if (this->size() < 60) {
+			char *cstring = reinterpret_cast<char *>(&(this->data.block_pointer_direct[0]));
+			if (target.size() < 60) {
+				std::copy(target.begin(), target.end(), cstring);
+				this->data.size = target.size();
+			} else {
+				for (auto i = 0u; i < 60; i++) {
+					*cstring = 0;
+					++cstring;
+				}
+				this->data.size = 0;
+				this->write(0, target.c_str(), target.size());
+			}
+		} else {
+			this->write(0, target.c_str(), target.size());
+			if(target.size() < this->size()) {
+				//cut this rest
+				this->set_size(target.size());
+			}
+		}
+		this->save();
 	}
 };
 
