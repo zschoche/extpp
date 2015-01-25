@@ -520,10 +520,10 @@ BOOST_AUTO_TEST_CASE(alloc_block_test) {
 	BOOST_REQUIRE_EQUAL(gdt[1].data.free_blocks, 1842);
 
 	auto filesystem = ext2::read_filesystem(image);
-	auto id = filesystem.alloc_block(0);
+	auto id = filesystem.alloc_block();
 
 
-	BOOST_REQUIRE_EQUAL(id, 216);
+	BOOST_REQUIRE_EQUAL(id, 221);
 
 	auto sb1 = ext2::read_superblock(image);
 	BOOST_REQUIRE_EQUAL(sb1.data.free_block_count, 9769);
@@ -563,10 +563,12 @@ BOOST_AUTO_TEST_CASE(alloc_block_all_test) {
 	BOOST_REQUIRE_EQUAL(gdt[0].data.free_blocks, 7928);
 	BOOST_REQUIRE_EQUAL(gdt[1].data.free_blocks, 1842);
 	std::vector<uint32_t> blocks;
-	while(sb.data.free_block_count != 0) {
+	auto count = sb.data.free_block_count;
+	for(int i = 0; i < count; i++) {
 		blocks.push_back(filesystem.alloc_block());
-		sb.load();
 	}
+	sb.load();
+	BOOST_REQUIRE_EQUAL(sb.data.free_block_count, 0);
 
 	for(auto& id : blocks) {
 		filesystem.free_block(id);
@@ -644,10 +646,13 @@ BOOST_AUTO_TEST_CASE(alloc_inode_all_test) {
 	BOOST_REQUIRE_EQUAL(gdt[0].data.free_inodes, 1258);
 	BOOST_REQUIRE_EQUAL(gdt[1].data.free_inodes, 1278);
 	std::vector<uint32_t> blocks;
-	while(sb.data.free_inodes_count != 0) {
+	auto count = sb.data.free_inodes_count;
+	for(int i = 0; i < count; i++) {
 		blocks.push_back(filesystem.alloc_inode());
-		sb.load();
 	}
+	sb.load();
+	BOOST_REQUIRE_EQUAL(sb.data.free_inodes_count, 0);
+	BOOST_REQUIRE_EQUAL(blocks.size(), count);
 
 	for(auto& id : blocks) {
 		filesystem.free_inode(id);

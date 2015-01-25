@@ -162,8 +162,8 @@ template <typename Device> struct filesystem {
 	uint32_t alloc_inode(uint32_t related_inode_id = 1) {
 		related_inode_id--; // bit 0 is corresponding with block 1
 		uint32_t result = allocator::alloc<error::no_free_inode_error>(inode_bitmaps, super_block.data.inodes_per_group, related_inode_id);
-		result++; // bit 0 is corresponding with block 1
 		auto gdt_id = result / super_block.data.inodes_per_group;
+		result++; // bit 0 is corresponding with block 1
 		gd_table[gdt_id].data.free_inodes--;
 		gd_table[gdt_id].save();
 		super_block.data.free_inodes_count--;
@@ -172,8 +172,8 @@ template <typename Device> struct filesystem {
 	}
 
 	void free_inode(uint32_t id) {
-		auto gdt_id = id / super_block.data.inodes_per_group;
 		id--; // bit 0 is corresponding with block 1
+		auto gdt_id = id / super_block.data.inodes_per_group;
 		allocator::free(id, inode_bitmaps, super_block.data.inodes_per_group);
 		gd_table[gdt_id].data.free_inodes++;
 		gd_table[gdt_id].save();
