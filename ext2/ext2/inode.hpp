@@ -100,7 +100,18 @@ template <typename Filesystem> class inode : public fs_data<Filesystem, detail::
 				block_index++;
 				blockid = get_block_id(block_index);
 			}
+		} else if(new_size > old_size) {
+			//allocate new blocks
+			auto block_index_start = old_size / this->fs()->block_size();
+			auto block_index_end = new_size / this->fs()->block_size();
+			auto block_id = get_block_id(block_index_start);
+			while(block_index_start < block_index_end) {
+				block_id = this->fs()->alloc_block(block_id);
+				++block_index_start;
+				set_block_id(block_index_start, block_id);
+			}
 		}
+
 		this->save();
 	}
 
@@ -132,33 +143,24 @@ template <typename Filesystem> class inode : public fs_data<Filesystem, detail::
 	}
 	void write(uint64_t offset, const char *buffer, uint64_t length) {
 		auto buffer_offset = 0;
-		uint32_t last_block_id = this->get_inode_block_id();
 		if (offset >= size())
 			throw error::out_of_range_error();
 
+		if(offset + length > this->size()) {
+			set_size(offset + length);
+		}
 		do {
 			auto block_index = offset / this->fs()->block_size();
 			auto block_offset = offset % this->fs()->block_size();
 			auto block_length = std::min(this->fs()->block_size() - block_offset, length);
 			auto block_id = get_block_id(block_index);
-			if (block_id == 0) {
-				/* we are going to need a new block */
-				auto new_block_id = this->fs()->alloc_block(last_block_id);
-				set_block_id(block_index, new_block_id);
-				block_id = new_block_id;
-			}
 			this->fs()->device()->write(this->fs()->to_address(block_id, block_offset), &buffer[buffer_offset], block_length);
-			last_block_id = block_id;
 			buffer_offset += block_length;
 			offset += block_length;
-			if (offset > size()) {
-				set_size(offset);
-				this->save();
-			}
 			length -= block_length;
 		} while (length > 0);
 
-	} // TODO: implement!
+	} 
 };
 template <typename OStream, typename Inode> void read_inode_content(OStream &os, Inode &inode) {
 	std::array<char, 255> buffer;
