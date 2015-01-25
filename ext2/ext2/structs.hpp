@@ -161,7 +161,7 @@ enum inode_types : uint16_t {
 	symbolic_link = 0xA000,
 	unix_socket = 0xC000
 };
-enum inode_premissions : uint64_t {
+enum inode_permissions : uint64_t {
 
 	oexec = 0x001,	//Other—execute permission
 	owrite = 0x002,	//Other—write permission
@@ -182,7 +182,9 @@ enum inode_premissions : uint64_t {
 
 };
 
-template <typename OStream> OStream &dump_inode_premissions(OStream &os, const uint16_t &val) {
+constexpr uint64_t inode_permissions_default = uwrite | uread | oread;
+
+template <typename OStream> OStream &dump_inode_permissions(OStream &os, const uint16_t &val) {
 	os << "other: ";
 	if(has_flag(val, oexec)) os << 'x';
 	if(has_flag(val, owrite)) os << 'w';
@@ -219,7 +221,7 @@ template <typename OStream> OStream &operator<<(OStream &os, const inode_types &
 		os << "Other";
 	}
 	os << "[";
-	dump_inode_premissions(os, val);
+	dump_inode_permissions(os, val);
 	os << "]";
 	os << "(" << static_cast<const uint32_t>(val) << ")";
 	return os;
@@ -244,7 +246,7 @@ enum inode_flags : uint32_t {
 */
 struct __attribute__((packed)) inode {
 
-	inode_types type; // type and permissions
+	uint16_t type; // type and permissions
 	uint16_t uid;     // user ID
 
 	uint32_t size;		   // lower 32 bits of size in bytes
@@ -274,6 +276,8 @@ struct __attribute__((packed)) inode {
 		os::hurd::specific_value_2 hurd;
 		os::masix::specific_value_2 masix;
 	} os_specific_2;
+
+
 
 	template<typename OStream> OStream& dump(OStream& os) {
 	os << "Inode Dump:\n";

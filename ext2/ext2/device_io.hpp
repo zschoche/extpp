@@ -30,7 +30,7 @@ template <typename Device, typename Block> class block_data {
 	Block data;
 
 	block_data(Device *d = nullptr, uint64_t offset = 0) : pos(d, offset) {}
-	block_data(block_data<Device, Block> &) = default;
+	block_data(const block_data<Device, Block> &) = default;
 	block_data(block_data<Device, Block> &&) = default;
 
 	void save() { detail::write_to_device(*pos.first, pos.second, data); }
@@ -139,6 +139,7 @@ template <typename Superblock> group_descriptor_table<typename Superblock::devic
 	return read_vector<typename group_descriptor_table<typename Superblock::device_type>::value_type>(*superblock.device(), pos,
 													  superblock.data.block_group_count());
 }
+
 
 } /* namespace ext2 */
 #endif /* __DEVICE_IO_HPP__ */

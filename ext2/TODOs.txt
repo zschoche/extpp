@@ -3,15 +3,19 @@ Viele Sachen sind einfach im Code mit //TODO gekennzeichnet.
 
 - alle std::endl in den dump() funktionen durch \n ersetzen. und \r überall entfernen
 - Sehr große Datein können nicht gelesen werden (Indirekte blöcke 2,3)
+- Sehr große Datein können nicht geschrieben werden (Indirekte blöcke 2,3)
 - reservierte block respektieren
 - reservierte inodes respektieren
 
-- Dateien schreiben
-- Dateien vergrößern
 - Dateien verkleinern
-- Verzeichnis schreiben und erstellen
+- Verzeichnis erstellen
+- sym_link erstellen
+
+- inode löschen
+   - dateien löschen
+   - verzeichnis löschen (was ist mit den dateien in dem Verzeichnis)
+   - sym_link löschen
 
 
 ? mirroring
-? hardlinks
 ? rechte

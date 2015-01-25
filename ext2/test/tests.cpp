@@ -735,3 +735,30 @@ BOOST_AUTO_TEST_CASE(ext_file_test) {
 	BOOST_REQUIRE_EQUAL(file2->size(), msg.size() + 4);
 	std::remove("ext_file_test.img");
 }
+
+
+BOOST_AUTO_TEST_CASE(ext_create_file_test) {
+	std::remove("ext_create_file_test.img");
+	{
+		std::ifstream source("image.img", std::ios::binary);
+    		std::ofstream dest("ext_create_file_test.img", std::ios::binary);
+		std::istreambuf_iterator<char> begin_source(source);
+		std::istreambuf_iterator<char> end_source;
+		std::ostreambuf_iterator<char> begin_dest(dest); 
+		std::copy(begin_source, end_source, begin_dest);
+	}
+	host_node image("ext_create_file_test.img", 1024 * 1024 * 10);
+	auto filesystem = ext2::read_filesystem(image);
+	auto id_file = filesystem.create_file();
+	auto root = filesystem.get_root();
+	if(auto* dir = ext2::to_directory(&root)) {
+		auto entry = ext2::create_directory_entry("new_file", id_file.first, id_file.second);
+		*dir << entry;
+		auto entrys = dir->read_entrys();
+		BOOST_CHECK(std::find_if(entrys.begin(), entrys.end(),[&] (auto& e) { return e.inode_id == id_file.first && e.name == "new_file"; }) != entrys.end());
+
+	} else {
+		BOOST_ERROR("root is not a directory");
+	}
+	std::remove("ext_create_file_test.img");
+}
