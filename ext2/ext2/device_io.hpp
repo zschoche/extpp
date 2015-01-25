@@ -71,14 +71,14 @@ template <typename Device> class bitmap : public dynamic_block_data<Device> {
 	bool get(uint64_t index) const {
 		auto byte = index / 8;
 		auto bit = index % 8;
-		uint8_t mask = 0b10000000 >> bit;
+		uint8_t mask = 0b00000001 << bit;
 		return this->data()[byte] & mask;
 	}
 
 	void set(uint64_t index, bool b) {
 		auto byte = index / 8;
 		auto bit = index % 8;
-		uint8_t mask = 0b10000000 >> bit;
+		uint8_t mask = 0b00000001 << bit;
 		if (b) {
 			this->data()[byte] = this->data()[byte] | mask;
 		} else {

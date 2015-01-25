@@ -137,8 +137,10 @@ template <typename Device> struct filesystem {
 	inode_type get_root() { return get_inode(2); }
 
 	/* returns a block id in the block group if related_block_id */
-	uint32_t alloc_block(uint32_t related_block_id = 0) {
+	uint32_t alloc_block(uint32_t related_block_id = 1) {
+		related_block_id--; // bit 0 is corresponding with block 1
 		uint32_t result = allocator::alloc<error::no_free_block_error>(block_bitmaps, super_block.data.blocks_per_group, related_block_id);
+		result++; // bit 0 is corresponding with block 1
 		auto gdt_id = result / super_block.data.blocks_per_group;
 		gd_table[gdt_id].data.free_blocks--;
 		gd_table[gdt_id].save();
@@ -148,17 +150,20 @@ template <typename Device> struct filesystem {
 	}
 
 	void free_block(uint32_t id) {
-		allocator::free(id, block_bitmaps, super_block.data.blocks_per_group);
 		auto gdt_id = id / super_block.data.blocks_per_group;
+		id--; // bit 0 is corresponding with block 1
+		allocator::free(id, block_bitmaps, super_block.data.blocks_per_group);
 		gd_table[gdt_id].data.free_blocks++;
 		gd_table[gdt_id].save();
 		super_block.data.free_block_count++;
 		super_block.save();
 	}
 
-	uint32_t alloc_inode(uint32_t related_block_id = 0) {
-		uint32_t result = allocator::alloc<error::no_free_inode_error>(inode_bitmaps, super_block.data.inodes_per_group, related_block_id);
-		auto gdt_id = result / super_block.data.blocks_per_group;
+	uint32_t alloc_inode(uint32_t related_inode_id = 1) {
+		related_inode_id--; // bit 0 is corresponding with block 1
+		uint32_t result = allocator::alloc<error::no_free_inode_error>(inode_bitmaps, super_block.data.inodes_per_group, related_inode_id);
+		result++; // bit 0 is corresponding with block 1
+		auto gdt_id = result / super_block.data.inodes_per_group;
 		gd_table[gdt_id].data.free_inodes--;
 		gd_table[gdt_id].save();
 		super_block.data.free_inodes_count--;
@@ -167,8 +172,9 @@ template <typename Device> struct filesystem {
 	}
 
 	void free_inode(uint32_t id) {
+		auto gdt_id = id / super_block.data.inodes_per_group;
+		id--; // bit 0 is corresponding with block 1
 		allocator::free(id, inode_bitmaps, super_block.data.inodes_per_group);
-		auto gdt_id = id / super_block.data.blocks_per_group;
 		gd_table[gdt_id].data.free_inodes++;
 		gd_table[gdt_id].save();
 		super_block.data.free_inodes_count++;
@@ -196,7 +202,7 @@ template <typename Device> struct filesystem {
 				if (val == true && last == false) {
 					first = (i * super_block.data.blocks_per_group) + k;
 				} else if (val == false && last == true) {
-					os << first << '-' << ((i * super_block.data.blocks_per_group) + k) - 1 << ' ';
+					os << first+1 << '-' << ((i * super_block.data.blocks_per_group) + k) << ' ';
 				}
 				last = val;
 			}
@@ -209,7 +215,7 @@ template <typename Device> struct filesystem {
 				if (val == true && last == false) {
 					first = i * super_block.data.inodes_per_group + k;
 				} else if (val == false && last == true) {
-					os << first << '-' << ((i * super_block.data.inodes_per_group) + k) - 1 << ' ';
+					os << first+1 << '-' << ((i * super_block.data.inodes_per_group) + k) << ' ';
 				}
 				last = val;
 			}

@@ -564,7 +564,7 @@ BOOST_AUTO_TEST_CASE(alloc_block_all_test) {
 	BOOST_REQUIRE_EQUAL(gdt[1].data.free_blocks, 1842);
 	std::vector<uint32_t> blocks;
 	while(sb.data.free_block_count != 0) {
-		blocks.push_back(filesystem.alloc_block(0));
+		blocks.push_back(filesystem.alloc_block());
 		sb.load();
 	}
 
@@ -601,10 +601,10 @@ BOOST_AUTO_TEST_CASE(alloc_inode_test) {
 	BOOST_REQUIRE_EQUAL(gdt[1].data.free_inodes, 1278);
 
 	auto filesystem = ext2::read_filesystem(image);
-	auto id = filesystem.alloc_inode(0);
+	auto id = filesystem.alloc_inode();
 
 
-	BOOST_REQUIRE_EQUAL(id, 16);
+	BOOST_REQUIRE_EQUAL(id, 23);
 
 	auto sb1 = ext2::read_superblock(image);
 	BOOST_REQUIRE_EQUAL(sb1.data.free_inodes_count, 2535);
@@ -645,7 +645,7 @@ BOOST_AUTO_TEST_CASE(alloc_inode_all_test) {
 	BOOST_REQUIRE_EQUAL(gdt[1].data.free_inodes, 1278);
 	std::vector<uint32_t> blocks;
 	while(sb.data.free_inodes_count != 0) {
-		blocks.push_back(filesystem.alloc_inode(0));
+		blocks.push_back(filesystem.alloc_inode());
 		sb.load();
 	}
 
@@ -772,8 +772,8 @@ BOOST_AUTO_TEST_CASE(ext_create_file_test) {
 	}
 	host_node image("ext_create_file_test.img", 1024 * 1024 * 10);
 	auto filesystem = ext2::read_filesystem(image);
-	auto id_file = filesystem.create_file();
 	auto root = filesystem.get_root();
+	auto id_file = filesystem.create_file();
 	if(auto* dir = ext2::to_directory(&root)) {
 		auto entry = ext2::create_directory_entry("new_file", id_file.first, id_file.second);
 		*dir << entry;
