@@ -41,15 +41,22 @@ template <typename Filesystem> class inode : public fs_data<Filesystem, detail::
 		if (block_index < 12) {
 			// direct pointer
 			return this->data.block_pointer_direct[block_index];
-		} else if (block_index < 268) {
-			block_index -= 12;
-			uint32_t result;
-			auto blockid = this->data.block_pointer_indirect[0];
-			detail::read_from_device(*(this->fs()->device()), this->fs()->to_address(blockid, block_index * sizeof(uint32_t)), result);
-			return result;
 		} else {
-			throw "this is not ready yet";
-			return 0; // TODO: implement
+
+			auto idp1_cut = (this->fs()->block_size() / 4) + 12;
+			if (block_index < idp1_cut) {
+				block_index -= 12;
+				uint32_t result;
+				auto blockid = this->data.block_pointer_indirect[0];
+				detail::read_from_device(*(this->fs()->device()), this->fs()->to_address(blockid, block_index * sizeof(uint32_t)), result);
+				return result;
+			} else {
+				// auto idp2_cut = ...
+				block_index -= idp1_cut;
+				//....
+				throw "this is not ready yet";
+				return 0; // TODO: implement
+			}
 		}
 	}
 
@@ -57,21 +64,23 @@ template <typename Filesystem> class inode : public fs_data<Filesystem, detail::
 		if (block_index < 12) {
 			// direct pointer
 			this->data.block_pointer_direct[block_index] = block_id;
-		} else if (block_index < 268) {
-			block_index -= 12;
-			auto bpi_id = this->data.block_pointer_indirect[0];
-			if (bpi_id == 0) {
-				/* we are going to need a new block */
-				bpi_id = this->fs()->alloc_block(this->get_inode_block_id());
-				this->data.block_pointer_indirect[0] = bpi_id;
-				this->save();
-			}
-			detail::write_to_device(*(this->fs()->device()), this->fs()->to_address(bpi_id, block_index * sizeof(uint32_t)), block_id);
 		} else {
-			throw "this is not ready yet";
+			auto idp1_cut = (this->fs()->block_size() / 4) + 12;
+			if (block_index < idp1_cut) {
+				block_index -= 12;
+				auto bpi_id = this->data.block_pointer_indirect[0];
+				if (bpi_id == 0) {
+					/* we are going to need a new block */
+					bpi_id = this->fs()->alloc_block(this->get_inode_block_id());
+					this->data.block_pointer_indirect[0] = bpi_id;
+					this->save();
+				}
+				detail::write_to_device(*(this->fs()->device()), this->fs()->to_address(bpi_id, block_index * sizeof(uint32_t)), block_id);
+			} else {
+				throw "this is not ready yet";
+			}
 		}
 	}
-
 
       public:
 	inline void set_size(uint64_t new_size) {
@@ -89,29 +98,29 @@ template <typename Filesystem> class inode : public fs_data<Filesystem, detail::
 		/* http://www.nongnu.org/ext2-doc/ext2.html#I-BLOCKS */
 		this->data.count_sector = new_size / 512;
 
-		if(new_size < old_size) {
-			//release unsued blocks
+		if (new_size < old_size) {
+			// release unsued blocks
 			auto block_index = new_size / this->fs()->block_size();
 			block_index++;
 			uint32_t blockid = get_block_id(block_index);
-			while(blockid != 0) {
+			while (blockid != 0) {
 				this->fs()->free_block(blockid);
 				set_block_id(block_index, 0);
 				block_index++;
 				blockid = get_block_id(block_index);
 			}
-		} else if(new_size > old_size) {
-			//allocate new blocks
+		} else if (new_size > old_size) {
+			// allocate new blocks
 			auto block_index_start = old_size / this->fs()->block_size();
 			auto block_index_end = new_size / this->fs()->block_size();
 			auto block_id = get_block_id(block_index_start);
-			if(block_id == 0) { 
-				//the file is empty
+			if (block_id == 0) {
+				// the file is empty
 				block_id = this->fs()->alloc_block();
 				set_block_id(block_index_start, block_id);
 			}
 
-			while(block_index_start < block_index_end) {
+			while (block_index_start < block_index_end) {
 				block_id = this->fs()->alloc_block(block_id);
 				++block_index_start;
 				set_block_id(block_index_start, block_id);
@@ -120,7 +129,6 @@ template <typename Filesystem> class inode : public fs_data<Filesystem, detail::
 
 		this->save();
 	}
-
 
 	inode(fs_type *fs, uint64_t offset) : fs_data<Filesystem, detail::inode>(fs, offset) {}
 
@@ -152,7 +160,7 @@ template <typename Filesystem> class inode : public fs_data<Filesystem, detail::
 		if (offset > size())
 			throw error::out_of_range_error();
 
-		if(offset + length > this->size()) {
+		if (offset + length > this->size()) {
 			set_size(offset + length);
 		}
 		do {
@@ -165,8 +173,7 @@ template <typename Filesystem> class inode : public fs_data<Filesystem, detail::
 			offset += block_length;
 			length -= block_length;
 		} while (length > 0);
-
-	} 
+	}
 };
 template <typename OStream, typename Inode> void read_inode_content(OStream &os, Inode &inode) {
 	std::array<char, 255> buffer;
@@ -227,8 +234,8 @@ template <typename Filesystem> struct symbolic_link : inode<Filesystem> {
 			}
 		} else {
 			this->write(0, target.c_str(), target.size());
-			if(target.size() < this->size()) {
-				//cut this rest
+			if (target.size() < this->size()) {
+				// cut this rest
 				this->set_size(target.size());
 			}
 		}
