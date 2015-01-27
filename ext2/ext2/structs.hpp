@@ -384,50 +384,50 @@ struct __attribute__((packed)) superblock {
 
 
 	template <typename OStream> void dump(OStream &os) const {
-		os << "Superblock Dump:\r\n";
-		os << "\tinodes_count: " << inode_count << "\r\n";
-		os << "\tblocks_count: " << block_count << "\r\n";
-		os << "\treserved_blocks_count: " << reserved_blocks_count << "\r\n";
-		os << "\tfree_block_count: " << free_block_count << "\r\n";
-		os << "\tfree_inodes_count: " << free_inodes_count << "\r\n";
-		os << "\tsuper_block_number: " << super_block_number << "\r\n";
-		os << "\tblock_size_log: " << block_size_log << "\r\n";
-		os << "\tfragment_size_log: " << fragment_size_log << "\r\n";
-		os << "\tblocks_per_group: " << blocks_per_group << "\r\n";
-		os << "\tfragments_per_group: " << fragments_per_group << "\r\n";
-		os << "\tinodes_per_group: " << inodes_per_group << "\r\n";
-		os << "\tlast_mount_time: " << last_mount_time << "\r\n";
-		os << "\tlast_written_time: " << last_written_time << "\r\n";
-		os << "\tmount_count: " << mount_count << "\r\n";
-		os << "\tmount_count_max: " << mount_count_max << "\r\n";
-		os << "\text2_magic_number: " << ext2_magic_number << "\r\n";
-		os << "\tfile_system_state: " << file_system_state << "\r\n";
-		os << "\terror_behaviour: " << error_behaviour << "\r\n";
-		os << "\trev_level_minor: " << rev_level_minor << "\r\n";
-		os << "\tlast_check: " << last_check << "\r\n";
-		os << "\tcheck_interval: " << check_interval << "\r\n";
-		os << "\tos_id: " << os_id << "\r\n";
-		os << "\trev_level_major: " << rev_level_major << "\r\n";
-		os << "\tuser_id_res_blocks: " << user_id_res_blocks << "\r\n";
-		os << "\tgroup_id_res_blocks: " << group_id_res_blocks << "\r\n";
-		os << "\tfirst_unreserved_inode: " << first_unreserved_inode << "\r\n";
-		os << "\tinode_size: " << inode_size << "\r\n";
-		os << "\tthis_partof_group: " << this_partof_group << "\r\n";
-		os << "\tfeatures_opt: " << features_opt << "\r\n";
-		os << "\tfeatures_req: " << features_req << "\r\n";
-		os << "\tfeatures_readonly: " << features_readonly << "\r\n";
-		os << "\tfile_system_id[4]: " << file_system_id << "\r\n";
-		os << "\tvolume_name[16]: " << volume_name() << "\r\n";
-		os << "\tmount_path_last[64]: " << mount_path_last() << "\r\n";
-		os << "\tcompression_algorithm: " << compression_algorithm << "\r\n";
-		os << "\tfile_preallocate_blocks: " << file_preallocate_blocks << "\r\n";
-		os << "\tdir_preallocate_blocks: " << dir_preallocate_blocks << "\r\n";
-		os << "\tpadding_bytes1: " << padding_bytes1 << "\r\n";
-		os << "\tjournal_id[4]: " << journal_id << "\r\n";
-		os << "\tjournal_inode: " << journal_inode << "\r\n";
-		os << "\tjournal_device: " << journal_device << "\r\n";
-		os << "\torphan_list_head: " << orphan_list_head << "\r\n";
-		os << "\r\n";
+		os << "Superblock Dump:\n";
+		os << "\tinodes_count: " << inode_count << "\n";
+		os << "\tblocks_count: " << block_count << "\n";
+		os << "\treserved_blocks_count: " << reserved_blocks_count << "\n";
+		os << "\tfree_block_count: " << free_block_count << "\n";
+		os << "\tfree_inodes_count: " << free_inodes_count << "\n";
+		os << "\tsuper_block_number: " << super_block_number << "\n";
+		os << "\tblock_size_log: " << block_size_log << "\n";
+		os << "\tfragment_size_log: " << fragment_size_log << "\n";
+		os << "\tblocks_per_group: " << blocks_per_group << "\n";
+		os << "\tfragments_per_group: " << fragments_per_group << "\n";
+		os << "\tinodes_per_group: " << inodes_per_group << "\n";
+		os << "\tlast_mount_time: " << last_mount_time << "\n";
+		os << "\tlast_written_time: " << last_written_time << "\n";
+		os << "\tmount_count: " << mount_count << "\n";
+		os << "\tmount_count_max: " << mount_count_max << "\n";
+		os << "\text2_magic_number: " << ext2_magic_number << "\n";
+		os << "\tfile_system_state: " << file_system_state << "\n";
+		os << "\terror_behaviour: " << error_behaviour << "\n";
+		os << "\trev_level_minor: " << rev_level_minor << "\n";
+		os << "\tlast_check: " << last_check << "\n";
+		os << "\tcheck_interval: " << check_interval << "\n";
+		os << "\tos_id: " << os_id << "\n";
+		os << "\trev_level_major: " << rev_level_major << "\n";
+		os << "\tuser_id_res_blocks: " << user_id_res_blocks << "\n";
+		os << "\tgroup_id_res_blocks: " << group_id_res_blocks << "\n";
+		os << "\tfirst_unreserved_inode: " << first_unreserved_inode << "\n";
+		os << "\tinode_size: " << inode_size << "\n";
+		os << "\tthis_partof_group: " << this_partof_group << "\n";
+		os << "\tfeatures_opt: " << features_opt << "\n";
+		os << "\tfeatures_req: " << features_req << "\n";
+		os << "\tfeatures_readonly: " << features_readonly << "\n";
+		os << "\tfile_system_id[4]: " << file_system_id << "\n";
+		os << "\tvolume_name[16]: " << volume_name() << "\n";
+		os << "\tmount_path_last[64]: " << mount_path_last() << "\n";
+		os << "\tcompression_algorithm: " << compression_algorithm << "\n";
+		os << "\tfile_preallocate_blocks: " << file_preallocate_blocks << "\n";
+		os << "\tdir_preallocate_blocks: " << dir_preallocate_blocks << "\n";
+		os << "\tpadding_bytes1: " << padding_bytes1 << "\n";
+		os << "\tjournal_id[4]: " << journal_id << "\n";
+		os << "\tjournal_inode: " << journal_inode << "\n";
+		os << "\tjournal_device: " << journal_device << "\n";
+		os << "\torphan_list_head: " << orphan_list_head << "\n";
+		os << "\n";
 	}
 };
 
@@ -449,13 +449,13 @@ struct __attribute__((packed)) group_descriptor {
 	uint8_t unused[14];	    // padding bytes to get to 32 byte length
 
 	template <typename OStream> OStream& dump(OStream &os) const {
-		os << "Group Descriptor Dump:" << std::endl;
-		os << "\taddress_block_bitmap: " << address_block_bitmap << std::endl;
-		os << "\taddress_inode_bitmap: " << address_inode_bitmap << std::endl;
-		os << "\taddress_inode_table: " << address_inode_table << std::endl;
-		os << "\tfree_blocks: " << free_blocks << std::endl;
-		os << "\tfree_inodes: " << free_inodes << std::endl;
-		os << "\tcount_directorie: " << count_directories << std::endl;
+		os << "Group Descriptor Dump:" << '\n';
+		os << "\taddress_block_bitmap: " << address_block_bitmap << '\n';
+		os << "\taddress_inode_bitmap: " << address_inode_bitmap << '\n';
+		os << "\taddress_inode_table: " << address_inode_table << '\n';
+		os << "\tfree_blocks: " << free_blocks << '\n';
+		os << "\tfree_inodes: " << free_inodes << '\n';
+		os << "\tcount_directorie: " << count_directories << '\n';
 		return os;
 	}
 };
@@ -481,7 +481,7 @@ struct directory_entry {
 	std::string name;
 
 	template <typename OStream> OStream& dump(OStream &os) const {
-		os << "Directory Entry Dump:" << std::endl;
+		os << "Directory Entry Dump:" << '\n';
 		os << "\tinode_id: " <<  inode_id << '\n';
 		os << "\tsize: " <<  size << '\n';
 		//os << "type: " <<  type << '\n';
