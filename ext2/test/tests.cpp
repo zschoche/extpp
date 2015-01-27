@@ -895,3 +895,86 @@ BOOST_AUTO_TEST_CASE(ext_create_dir_test) {
 	}
 	std::remove("ext_create_dir_test.img");
 }
+BOOST_AUTO_TEST_CASE(ext_check_backup_test) {
+	std::remove("ext_check_backup_test.img");
+	{
+		std::ifstream source("image.img", std::ios::binary);
+    		std::ofstream dest("ext_check_backup_test.img", std::ios::binary);
+		std::istreambuf_iterator<char> begin_source(source);
+		std::istreambuf_iterator<char> end_source;
+		std::ostreambuf_iterator<char> begin_dest(dest); 
+		std::copy(begin_source, end_source, begin_dest);
+	}
+	host_node image("ext_check_backup_test.img", 1024 * 1024 * 10);
+	{
+	auto prim = ext2::read_superblock(image);
+	auto backup = ext2::read_superblock(image, 8193*1024);
+	BOOST_CHECK(prim.data == backup.data);
+	auto gd_table = ext2::read_group_descriptor_table(prim);
+	auto gd_table_backup = ext2::read_group_descriptor_table(backup);
+	BOOST_REQUIRE_EQUAL(gd_table.size(), 2);
+	BOOST_REQUIRE_EQUAL(gd_table_backup.size(), 2);
+	BOOST_CHECK(gd_table[0].data.free_blocks != gd_table_backup[0].data.free_blocks); // the backup is currently not in sync
+	BOOST_CHECK(gd_table[0].data.free_inodes != gd_table_backup[0].data.free_inodes); // the backup is currently not in sync
+	BOOST_CHECK(gd_table[1].data.free_blocks != gd_table_backup[1].data.free_blocks); // the backup is currently not in sync
+	BOOST_CHECK(gd_table[1].data.free_inodes != gd_table_backup[1].data.free_inodes); // the backup is currently not in sync
+	for(auto i = 0u; i < gd_table.size(); i++) {
+		BOOST_REQUIRE_EQUAL(gd_table[i].data.address_block_bitmap, gd_table_backup[i].data.address_block_bitmap);
+		BOOST_REQUIRE_EQUAL(gd_table[i].data.address_inode_bitmap, gd_table_backup[i].data.address_inode_bitmap);
+		BOOST_REQUIRE_EQUAL(gd_table[i].data.address_inode_table, gd_table_backup[i].data.address_inode_table);
+		BOOST_REQUIRE_EQUAL(gd_table[i].data.count_directories, gd_table[i].data.count_directories);
+	}
+	auto &gd1 = gd_table[0];
+	BOOST_REQUIRE_EQUAL(gd1.data.address_block_bitmap, 42);
+	BOOST_REQUIRE_EQUAL(gd1.data.address_inode_bitmap, 43);
+	BOOST_REQUIRE_EQUAL(gd1.data.address_inode_table, 44);
+	BOOST_REQUIRE_EQUAL(gd1.data.free_blocks, 7928);
+	BOOST_REQUIRE_EQUAL(gd1.data.free_inodes, 1258);
+	BOOST_REQUIRE_EQUAL(gd1.data.count_directories, 4);
+
+	auto &gd2 = gd_table[1];
+	BOOST_REQUIRE_EQUAL(gd2.data.address_block_bitmap, 8234);
+	BOOST_REQUIRE_EQUAL(gd2.data.address_inode_bitmap, 8235);
+	BOOST_REQUIRE_EQUAL(gd2.data.address_inode_table, 8236);
+	BOOST_REQUIRE_EQUAL(gd2.data.free_blocks, 1842);
+	BOOST_REQUIRE_EQUAL(gd2.data.free_inodes, 1278);
+	BOOST_REQUIRE_EQUAL(gd2.data.count_directories, 2);
+	}
+	auto filesystem = ext2::read_filesystem(image);
+	filesystem.write_superblock_backup();
+	{
+	auto prim = ext2::read_superblock(image);
+	auto backup = ext2::read_superblock(image, 8193*1024);
+	BOOST_CHECK(prim.data == backup.data);
+	auto gd_table = ext2::read_group_descriptor_table(prim);
+	auto gd_table_backup = ext2::read_group_descriptor_table(backup);
+	BOOST_REQUIRE_EQUAL(gd_table.size(), 2);
+	BOOST_REQUIRE_EQUAL(gd_table_backup.size(), 2);
+	BOOST_CHECK(gd_table[0].data.free_blocks == gd_table_backup[0].data.free_blocks); // the backup is now in sync
+	BOOST_CHECK(gd_table[0].data.free_inodes == gd_table_backup[0].data.free_inodes); // the backup is now in sync
+	BOOST_CHECK(gd_table[1].data.free_blocks == gd_table_backup[1].data.free_blocks); // the backup is now in sync
+	BOOST_CHECK(gd_table[1].data.free_inodes == gd_table_backup[1].data.free_inodes); // the backup is now in sync
+	for(auto i = 0u; i < gd_table.size(); i++) {
+		BOOST_REQUIRE_EQUAL(gd_table[i].data.address_block_bitmap, gd_table_backup[i].data.address_block_bitmap);
+		BOOST_REQUIRE_EQUAL(gd_table[i].data.address_inode_bitmap, gd_table_backup[i].data.address_inode_bitmap);
+		BOOST_REQUIRE_EQUAL(gd_table[i].data.address_inode_table, gd_table_backup[i].data.address_inode_table);
+		BOOST_REQUIRE_EQUAL(gd_table[i].data.count_directories, gd_table[i].data.count_directories);
+	}
+	auto &gd1 = gd_table[0];
+	BOOST_REQUIRE_EQUAL(gd1.data.address_block_bitmap, 42);
+	BOOST_REQUIRE_EQUAL(gd1.data.address_inode_bitmap, 43);
+	BOOST_REQUIRE_EQUAL(gd1.data.address_inode_table, 44);
+	BOOST_REQUIRE_EQUAL(gd1.data.free_blocks, 7928);
+	BOOST_REQUIRE_EQUAL(gd1.data.free_inodes, 1258);
+	BOOST_REQUIRE_EQUAL(gd1.data.count_directories, 4);
+
+	auto &gd2 = gd_table[1];
+	BOOST_REQUIRE_EQUAL(gd2.data.address_block_bitmap, 8234);
+	BOOST_REQUIRE_EQUAL(gd2.data.address_inode_bitmap, 8235);
+	BOOST_REQUIRE_EQUAL(gd2.data.address_inode_table, 8236);
+	BOOST_REQUIRE_EQUAL(gd2.data.free_blocks, 1842);
+	BOOST_REQUIRE_EQUAL(gd2.data.free_inodes, 1278);
+	BOOST_REQUIRE_EQUAL(gd2.data.count_directories, 2);
+	}
+	std::remove("ext_check_backup_test.img");
+}

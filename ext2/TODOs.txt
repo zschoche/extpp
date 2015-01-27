@@ -10,5 +10,4 @@ Viele Sachen sind einfach im Code mit //TODO gekennzeichnet.
    - verzeichnis löschen (was ist mit den dateien in dem Verzeichnis)
    - sym_link löschen
 
-? mirroring
 ? rechte

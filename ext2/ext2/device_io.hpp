@@ -33,12 +33,14 @@ template <typename Device, typename Block> class block_data {
 	block_data(const block_data<Device, Block> &) = default;
 	block_data(block_data<Device, Block> &&) = default;
 
-	void save() { detail::write_to_device(*pos.first, pos.second, data); }
+	void save() { save(pos.second); }
+	void save(uint64_t offset) { detail::write_to_device(*pos.first, offset, data); }
 
 	void load() { detail::read_from_device(*pos.first, pos.second, data); }
 
 	device_type *device() const { return pos.first; }
 	uint64_t offset() const { return pos.second; }
+	uint32_t size() const { return sizeof(Block); }
 };
 
 template <typename Device> class dynamic_block_data {
@@ -102,8 +104,8 @@ template <typename Device> using superblock = block_data<Device, detail::superbl
 template <typename Device> using group_descriptor = block_data<Device, detail::group_descriptor>;
 template <typename Device> using group_descriptor_table = std::vector<group_descriptor<Device> >;
 
-template <typename Device> superblock<Device> read_superblock(Device &d) {
-	superblock<Device> result(&d, 1024);
+template <typename Device> superblock<Device> read_superblock(Device &d, uint64_t offset = 1024) {
+	superblock<Device> result(&d, offset);
 	result.load();
 	return result;
 }
@@ -127,6 +129,12 @@ template <typename T> std::vector<T> read_vector(typename T::device_type &d, uin
 template <typename T> void write_vector(std::vector<T> &vec) {
 	for (auto &item : vec) {
 		item.save();
+	}
+}
+template <typename T> void write_vector(std::vector<T> &vec, uint32_t offset) {
+	for (auto &item : vec) {
+		item.save(offset);
+		offset += item.size();
 	}
 }
 

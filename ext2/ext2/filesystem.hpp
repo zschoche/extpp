@@ -199,7 +199,7 @@ template <typename Device> struct filesystem {
 				if (val == true && last == false) {
 					first = (i * super_block.data.blocks_per_group) + k;
 				} else if (val == false && last == true) {
-					os << first+1 << '-' << ((i * super_block.data.blocks_per_group) + k) << ' ';
+					os << first + 1 << '-' << ((i * super_block.data.blocks_per_group) + k) << ' ';
 				}
 				last = val;
 			}
@@ -212,7 +212,7 @@ template <typename Device> struct filesystem {
 				if (val == true && last == false) {
 					first = i * super_block.data.inodes_per_group + k;
 				} else if (val == false && last == true) {
-					os << first+1 << '-' << ((i * super_block.data.inodes_per_group) + k) << ' ';
+					os << first + 1 << '-' << ((i * super_block.data.inodes_per_group) + k) << ' ';
 				}
 				last = val;
 			}
@@ -225,27 +225,56 @@ template <typename Device> struct filesystem {
 						    uint32_t flags = 0) {
 		return create_inode(detail::inode_types::regular_file, permissions, uid, gid, flags);
 	}
-	std::pair<uint32_t, inode_type> create_symbolic_link(const std::string target, uint64_t permissions = detail::inode_permissions_default, uint16_t uid = 0, uint16_t gid = 0,
-						    uint32_t flags = 0) { 
+	std::pair<uint32_t, inode_type> create_symbolic_link(const std::string target, uint64_t permissions = detail::inode_permissions_default,
+							     uint16_t uid = 0, uint16_t gid = 0, uint32_t flags = 0) {
 
 		auto id_inode = create_inode(detail::inode_types::symbolic_link, permissions, uid, gid, flags);
-		if(!target.empty()) {
-			if(auto* symlink = to_symbolic_link(&id_inode.second)) {
+		if (!target.empty()) {
+			if (auto *symlink = to_symbolic_link(&id_inode.second)) {
 				symlink->set_target(target);
 			}
 		}
 		return id_inode;
 	}
-	std::pair<uint32_t, inode_type> create_directory(uint32_t parent_directory, uint64_t permissions = detail::inode_permissions_default, uint16_t uid = 0, uint16_t gid = 0,
-						    uint32_t flags = 0) { 
+	std::pair<uint32_t, inode_type> create_directory(uint32_t parent_directory, uint64_t permissions = detail::inode_permissions_default, uint16_t uid = 0,
+							 uint16_t gid = 0, uint32_t flags = 0) {
 		auto id_dir = create_inode(detail::inode_types::directory, permissions, uid, gid, flags);
-		if(auto* dir = to_directory(&id_dir.second)) {
+		if (auto *dir = to_directory(&id_dir.second)) {
 			directory_entry_list list;
-			list.push_back(detail::directory_entry{ id_dir.first, 9, 1, detail::directory_entry_type::directory, "." });
-			list.push_back(detail::directory_entry{ parent_directory, 10, 1, detail::directory_entry_type::directory, ".." });
+			list.push_back(detail::directory_entry{id_dir.first, 9, 1, detail::directory_entry_type::directory, "."});
+			list.push_back(detail::directory_entry{parent_directory, 10, 1, detail::directory_entry_type::directory, ".."});
 			dir->write_entrys(list);
 		}
 		return id_dir;
+	}
+
+	void write_superblock_backup() {
+		/* http://www.nongnu.org/ext2-doc/ext2.html#DISK-ORGANISATION */
+		auto backup = [&](auto i) -> bool {
+			if (i < gd_table.size()) {
+				auto blockid = (i * super_block.data.blocks_per_group) + 1;
+				//std::cout << "write to" << sb_addr << std::endl;
+				//std::cout << "write to" << sb_addr + (super_block.size() / this->block_size()) + 1 << std::endl;
+				super_block.save(this->to_address(blockid, 0));
+				write_vector(gd_table, this->to_address(blockid + (super_block.size() / this->block_size()) + 1, 0));
+				return true;
+			} else {
+				return false;
+			}
+		};
+		backup(1);
+		uint32_t x = 3;
+		while (backup(x)) {
+			x *= 3;
+		};
+		x = 5;
+		while (backup(x)) {
+			x *= 5;
+		};
+		x = 7;
+		while (backup(x)) {
+			x *= 7;
+		};
 	}
 
       private:
@@ -271,10 +300,10 @@ template <typename Device> struct filesystem {
 		inode.data.count_sector = 0;
 		inode.data.flags = flags;
 		inode.data.os_specific_1 = detail::os::LINUX;
-		for(auto i = 0u; i < 12; i++) {
+		for (auto i = 0u; i < 12; i++) {
 			inode.data.block_pointer_direct[i] = 0;
 		}
-		for(auto i = 0u; i < 3; i++) {
+		for (auto i = 0u; i < 3; i++) {
 			inode.data.block_pointer_indirect[i] = 0;
 		}
 		inode.data.number_generation = 0;
