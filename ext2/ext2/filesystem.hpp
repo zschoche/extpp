@@ -271,11 +271,11 @@ template <typename Device> struct filesystem {
 		inode.data.count_sector = 0;
 		inode.data.flags = flags;
 		inode.data.os_specific_1 = detail::os::LINUX;
-		for (auto &item : inode.data.block_pointer_direct) {
-			item = 0;
+		for(auto i = 0u; i < 12; i++) {
+			inode.data.block_pointer_direct[i] = 0;
 		}
-		for (auto &item : inode.data.block_pointer_indirect) {
-			item = 0;
+		for(auto i = 0u; i < 3; i++) {
+			inode.data.block_pointer_indirect[i] = 0;
 		}
 		inode.data.number_generation = 0;
 		inode.data.file_acl = 0;

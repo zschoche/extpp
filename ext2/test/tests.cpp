@@ -564,7 +564,7 @@ BOOST_AUTO_TEST_CASE(alloc_block_all_test) {
 	BOOST_REQUIRE_EQUAL(gdt[1].data.free_blocks, 1842);
 	std::vector<uint32_t> blocks;
 	auto count = sb.data.free_block_count;
-	for(int i = 0; i < count; i++) {
+	for(auto i = 0u; i < count; i++) {
 		blocks.push_back(filesystem.alloc_block());
 	}
 	sb.load();
@@ -647,7 +647,7 @@ BOOST_AUTO_TEST_CASE(alloc_inode_all_test) {
 	BOOST_REQUIRE_EQUAL(gdt[1].data.free_inodes, 1278);
 	std::vector<uint32_t> blocks;
 	auto count = sb.data.free_inodes_count;
-	for(int i = 0; i < count; i++) {
+	for(auto i = 0u; i < count; i++) {
 		blocks.push_back(filesystem.alloc_inode());
 	}
 	sb.load();

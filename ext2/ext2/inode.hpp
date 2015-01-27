@@ -62,8 +62,9 @@ template <typename Filesystem> class inode : public fs_data<Filesystem, detail::
 			} else {
 				
 				//the cut where the block index ends being doubly and starts being triply indirect	
-				auto idp2_cut = (id_per_block * id_per_block) +12;
-
+				auto idp2_cut = (id_per_block * id_per_block) +12; //ASK: is that correct? the filesystem act like this: 1. using direct pointers 1-12, 2. using direct pointers AND the first indirect stuff. 3. using direct pointers, first indirect stuff AND the second indirect pointers stuff. etc.
+				//MAY: auto idp2_cut = (id_per_block * id_per_block) + idp1_cut;
+				
 				if(block_index < idp2_cut){
 					
 					//determine the offset of the right singly indirect block inside the doubly indirect block
