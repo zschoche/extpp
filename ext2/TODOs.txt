@@ -5,9 +5,4 @@ Viele Sachen sind einfach im Code mit //TODO gekennzeichnet.
 - Sehr große Datein können nicht gelesen werden (Indirekte blöcke 2,3)
 - Sehr große Datein können nicht geschrieben werden (Indirekte blöcke 2,3)
 
-- inode löschen
-   - dateien löschen
-   - verzeichnis löschen (was ist mit den dateien in dem Verzeichnis)
-   - sym_link löschen
-
 ? rechte

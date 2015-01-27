@@ -28,11 +28,18 @@ template <typename Filesystem, typename T> class fs_data : public block_data<typ
 	uint32_t get_inode_block_id() const { return this->offset() / fs()->block_size(); }
 };
 
+namespace inodes {
+ template<typename Filesystem>
+	 struct directory;
+}
+
+
 /*
  * implements the device concept
  */
 template <typename Filesystem> class inode : public fs_data<Filesystem, detail::inode> {
 
+	friend struct inodes::directory<Filesystem>;
       public:
 	typedef Filesystem fs_type;
 
@@ -42,12 +49,12 @@ template <typename Filesystem> class inode : public fs_data<Filesystem, detail::
 			// direct pointer
 			return this->data.block_pointer_direct[block_index];
 		} else {
-			//at least a singly indirect pointer
+			// at least a singly indirect pointer
 
-			//1KiB block size results in 256 block ids and so on
+			// 1KiB block size results in 256 block ids and so on
 			auto id_per_block = (this->fs()->block_size() / 4);
 
-			//the cut where the block index ends being singly and starts being doubly indirect
+			// the cut where the block index ends being singly and starts being doubly indirect
 			auto idp1_cut = id_per_block + 12;
 
 			if (block_index < idp1_cut) {
@@ -60,61 +67,72 @@ template <typename Filesystem> class inode : public fs_data<Filesystem, detail::
 				return result;
 
 			} else {
-				
-				//the cut where the block index ends being doubly and starts being triply indirect	
-				auto idp2_cut = (id_per_block * id_per_block) +12; //ASK: is that correct? the filesystem act like this: 1. using direct pointers 1-12, 2. using direct pointers AND the first indirect stuff. 3. using direct pointers, first indirect stuff AND the second indirect pointers stuff. etc.
-				//MAY: auto idp2_cut = (id_per_block * id_per_block) + idp1_cut;
-				
-				if(block_index < idp2_cut){
-					
-					//determine the offset of the right singly indirect block inside the doubly indirect block
-					//every entry of a doubly linked list refers to id_per_block (e.g. 256 for 1KiB) blocks
-					uint32_t singly_indirect_block_index = (block_index -idp1_cut) / id_per_block;
-					block_index = (block_index - idp1_cut) % id_per_block; 
-						
+
+				// the cut where the block index ends being doubly and starts being triply indirect
+				auto idp2_cut = (id_per_block * id_per_block) + 12; // ASK: is that correct? the filesystem act like this: 1. using direct
+										    // pointers 1-12, 2. using direct pointers AND the first indirect stuff. 3.
+										    // using direct pointers, first indirect stuff AND the second indirect
+										    // pointers stuff. etc.
+				// MAY: auto idp2_cut = (id_per_block * id_per_block) + idp1_cut;
+
+				if (block_index < idp2_cut) {
+
+					// determine the offset of the right singly indirect block inside the doubly indirect block
+					// every entry of a doubly linked list refers to id_per_block (e.g. 256 for 1KiB) blocks
+					uint32_t singly_indirect_block_index = (block_index - idp1_cut) / id_per_block;
+					block_index = (block_index - idp1_cut) % id_per_block;
+
 					uint32_t singly_indirect_block;
 					uint32_t result;
 					auto blockid = this->data.block_pointer_indirect[1];
-					
-					//read the singly indirect block from doubly indirect
-					detail::read_from_device(*(this->fs()->device()), this->fs()->to_address(blockid, singly_indirect_block_index * sizeof(uint32_t)), singly_indirect_block);
-					//read the direct block from singly indirect
-					detail::read_from_device(*(this->fs()->device()), this->fs()->to_address(singly_indirect_block, block_index * sizeof(uint32_t)), result);
 
-					return result;			
-	
-				} else{
-					//values bigger than this are not in the range of blocks of the inode
-					auto idp3_cut = (id_per_block * id_per_block * id_per_block) +12;
-	
-					if(block_index < idp3_cut){
-						
-						//determine the offset of the right doubly indirect block inside the triply indirect block
-						//every entry of a triply indirect bloc krefers to id_per_block^2 (eg 65536 for 1KiB) blocks
+					// read the singly indirect block from doubly indirect
+					detail::read_from_device(*(this->fs()->device()),
+								 this->fs()->to_address(blockid, singly_indirect_block_index * sizeof(uint32_t)),
+								 singly_indirect_block);
+					// read the direct block from singly indirect
+					detail::read_from_device(*(this->fs()->device()),
+								 this->fs()->to_address(singly_indirect_block, block_index * sizeof(uint32_t)), result);
+
+					return result;
+
+				} else {
+					// values bigger than this are not in the range of blocks of the inode
+					auto idp3_cut = (id_per_block * id_per_block * id_per_block) + 12;
+
+					if (block_index < idp3_cut) {
+
+						// determine the offset of the right doubly indirect block inside the triply indirect block
+						// every entry of a triply indirect bloc krefers to id_per_block^2 (eg 65536 for 1KiB) blocks
 						uint32_t doubly_indirect_block_index = (block_index - idp2_cut) / (id_per_block * id_per_block);
 						uint32_t singly_indirect_block_index = (block_index - idp2_cut) / (id_per_block);
-						block_index = (block_index - idp2_cut) % id_per_block;						
+						block_index = (block_index - idp2_cut) % id_per_block;
 
 						uint32_t doubly_indirect_block;
 						uint32_t singly_indirect_block;
 						uint32_t result;
 						auto blockid = this->data.block_pointer_indirect[2];
 
-						//read the doubly indirect from the triply indirect block
-						detail::read_from_device(*(this->fs()->device()), this->fs()->to_address(blockid, doubly_indirect_block_index * sizeof(uint32_t)), doubly_indirect_block);
-						//read the singly indirect block from the doubly indirect block
-						detail::read_from_device(*(this->fs()->device()), this->fs()->to_address(doubly_indirect_block, singly_indirect_block_index * sizeof(uint32_t)), singly_indirect_block);
-						//read the direct block from singly indirect block
-						detail::read_from_device(*(this->fs()->device()), this->fs()->to_address(singly_indirect_block, block_index * sizeof(uint32_t)), result);
-					
-						return result;						
+						// read the doubly indirect from the triply indirect block
+						detail::read_from_device(*(this->fs()->device()),
+									 this->fs()->to_address(blockid, doubly_indirect_block_index * sizeof(uint32_t)),
+									 doubly_indirect_block);
+						// read the singly indirect block from the doubly indirect block
+						detail::read_from_device(
+						    *(this->fs()->device()),
+						    this->fs()->to_address(doubly_indirect_block, singly_indirect_block_index * sizeof(uint32_t)),
+						    singly_indirect_block);
+						// read the direct block from singly indirect block
+						detail::read_from_device(*(this->fs()->device()),
+									 this->fs()->to_address(singly_indirect_block, block_index * sizeof(uint32_t)), result);
+
+						return result;
 
 					} else {
 						throw "block index overflows the last block id of inode!";
 						return 0;
 					}
 				}
-
 			}
 		}
 	}
@@ -125,7 +143,6 @@ template <typename Filesystem> class inode : public fs_data<Filesystem, detail::
 			this->data.block_pointer_direct[block_index] = block_id;
 		} else {
 
-			
 			auto id_per_block = (this->fs()->block_size() / 4);
 			auto idp1_cut = id_per_block + 12;
 			if (block_index < idp1_cut) {
@@ -139,42 +156,43 @@ template <typename Filesystem> class inode : public fs_data<Filesystem, detail::
 				}
 				detail::write_to_device(*(this->fs()->device()), this->fs()->to_address(bpi_id, block_index * sizeof(uint32_t)), block_id);
 			} else {
-				
-				auto idp2_cut = (id_per_block * id_per_block) +12;
-				if(block_index < idp2_cut) {
 
-					//determine the offset of the right singly indirect block inside the doubly indirect block
-					//every entry of a doubly linked list refers to id_per_block (e.g. 256 for 1KiB) blocks
-					uint32_t singly_indirect_block_index = (block_index -idp1_cut) / id_per_block;
-					block_index = (block_index - idp1_cut) % id_per_block; 
-						
-					
+				auto idp2_cut = (id_per_block * id_per_block) + 12;
+				if (block_index < idp2_cut) {
+
+					// determine the offset of the right singly indirect block inside the doubly indirect block
+					// every entry of a doubly linked list refers to id_per_block (e.g. 256 for 1KiB) blocks
+					uint32_t singly_indirect_block_index = (block_index - idp1_cut) / id_per_block;
+					block_index = (block_index - idp1_cut) % id_per_block;
+
 					auto doubly_indirect_block_id = this->data.block_pointer_indirect[1];
 					uint32_t singly_indirect_block_id;
-					if( doubly_indirect_block_id == 0) {
-					//the block id is 0, therefore we need a doubly indirect block and a singly indirect block
+					if (doubly_indirect_block_id == 0) {
+						// the block id is 0, therefore we need a doubly indirect block and a singly indirect block
 						doubly_indirect_block_id = this->fs()->alloc_block(this->get_inode_block_id());
 						this->data.block_pointer_indirect[1] = doubly_indirect_block_id;
 						this->save();
-						
-						singly_indirect_block_id = this->fs()->alloc_block(this->get_inode_block_id());
-						detail::write_to_device(*(this->fs()->device()), this->fs()->to_address(doubly_indirect_block_id, 0), singly_indirect_block_id);
 
+						singly_indirect_block_id = this->fs()->alloc_block(this->get_inode_block_id());
+						detail::write_to_device(*(this->fs()->device()), this->fs()->to_address(doubly_indirect_block_id, 0),
+									singly_indirect_block_id);
 
 					} else {
-						detail::read_from_device(*(this->fs()->device()), this->fs()->to_address(doubly_indirect_block_id, singly_indirect_block_index * sizeof(uint32_t)), singly_indirect_block_id);
-						//TODO check here if singly indirect block is 0?
+						detail::read_from_device(
+						    *(this->fs()->device()),
+						    this->fs()->to_address(doubly_indirect_block_id, singly_indirect_block_index * sizeof(uint32_t)),
+						    singly_indirect_block_id);
+						// TODO check here if singly indirect block is 0?
+					}
 
-					}					
+					detail::write_to_device(*(this->fs()->device()),
+								this->fs()->to_address(singly_indirect_block_index, block_index * sizeof(uint32_t)), block_id);
 
-					
-					detail::write_to_device(*(this->fs()->device()), this->fs()->to_address(singly_indirect_block_index, block_index * sizeof(uint32_t)), block_id);
+				} else {
 
-				} else{
-				
-				//TODO implement triply indirect block behaviour						
-					auto idp3_cut = (id_per_block * id_per_block * id_per_block) +12;
-					if(block_index < idp3_cut){
+					// TODO implement triply indirect block behaviour
+					auto idp3_cut = (id_per_block * id_per_block * id_per_block) + 12;
+					if (block_index < idp3_cut) {
 
 					} else {
 						throw "block index overflows the last block id of inode!";
@@ -277,6 +295,7 @@ template <typename Filesystem> class inode : public fs_data<Filesystem, detail::
 		} while (length > 0);
 	}
 };
+
 template <typename OStream, typename Inode> void read_inode_content(OStream &os, Inode &inode) {
 	std::array<char, 255> buffer;
 	auto offset = 0u;
@@ -380,6 +399,55 @@ template <typename Filesystem> struct directory : inode<Filesystem> {
 			offset += e.size;
 		}
 	}
+
+	/*
+	 * returns false, if the given name is equal to ".." or "." and if the given name is a directory and not empty.
+	 */
+	bool remove(const std::string &name) {
+		auto entrys = read_entrys();
+		return remove(name, entrys);
+	}
+
+	/*
+	 * returns false, if the given name is equal to ".." or "." and if the given name is a directory and not empty.
+	 */
+	bool remove(const std::string &name, directory_entry_list &entrys) {
+		if(name == ".." || name == ".")
+			return false;
+
+		auto iter = std::find_if(entrys.begin(), entrys.end(), [&name](auto &e) { return e.name == name; });
+		if (iter != entrys.end()) {
+			auto inode = this->fs()->get_inode(iter->inode_id);
+			if (auto *dir = to_directory(&inode)) {
+				if(dir->read_entrys().size() > 2) {
+					return false;
+				}
+			}
+
+			inode.data.count_hard_link--;
+			inode.save();
+			if (inode.data.count_hard_link == 0) {
+				// free inode
+				// TODO: set deletion time
+
+				if (!inode.is_symbolic_link() || inode.size() >= 60) {
+					// free block but do not reset the pointer to make recovery possible
+					auto i = 0u;
+					auto blockid = inode.get_block_id(i);
+					while (blockid != 0) {
+						this->fs()->free_block(blockid);
+						blockid = inode.get_block_id(++i);
+					}
+				}
+				this->fs()->free_inode(iter->inode_id);
+			}
+			entrys.erase(iter);
+			write_entrys(entrys);
+		}
+		return true;
+	}
+
+      private:
 };
 
 template <typename Filesystem> directory<Filesystem> &operator<<(directory<Filesystem> &dir, const detail::directory_entry &e) {

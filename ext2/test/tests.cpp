@@ -978,3 +978,42 @@ BOOST_AUTO_TEST_CASE(ext_check_backup_test) {
 	}
 	std::remove("ext_check_backup_test.img");
 }
+
+BOOST_AUTO_TEST_CASE(remove_test) {
+	std::remove("remove_test.img");
+	{
+		std::ifstream source("image.img", std::ios::binary);
+    		std::ofstream dest("remove_test.img", std::ios::binary);
+		std::istreambuf_iterator<char> begin_source(source);
+		std::istreambuf_iterator<char> end_source;
+		std::ostreambuf_iterator<char> begin_dest(dest); 
+		std::copy(begin_source, end_source, begin_dest);
+	}
+	host_node image("remove_test.img", 1024 * 1024 * 10);
+	auto filesystem = ext2::read_filesystem(image);
+	auto root = filesystem.get_root();
+
+	auto tmp2id = ext2::find_inode(root, "/tmp2");	
+	auto inode = filesystem.get_inode(tmp2id);
+	auto* tmp2 = ext2::to_directory(&inode);
+	BOOST_CHECK(tmp2 != nullptr);
+	BOOST_REQUIRE_EQUAL(tmp2->remove("testdir"), false); //testdir is not empty
+	auto entrys = tmp2->read_entrys();
+	auto testdirid = std::find_if(entrys.begin(), entrys.end(), [](auto& e) { return e.name == "testdir"; })->inode_id;
+	BOOST_REQUIRE_EQUAL(testdirid, 16); 
+	auto testdir_inode = filesystem.get_inode(testdirid);
+	auto* testdir = ext2::to_directory(&testdir_inode);
+	BOOST_CHECK(testdir!= nullptr);
+	BOOST_REQUIRE_EQUAL(testdir->remove("."), false); // that is not possible
+	BOOST_REQUIRE_EQUAL(testdir->remove(".."), false); // that is not possible
+	BOOST_REQUIRE_EQUAL(testdir->remove("largefile2"), true); 
+	BOOST_REQUIRE_EQUAL(testdir->remove("largefile"), true); 
+	BOOST_REQUIRE_EQUAL(testdir->remove("link"), true); 
+	BOOST_REQUIRE_EQUAL(testdir->remove("tmp"), true); 
+	BOOST_REQUIRE_EQUAL(testdir->remove("tmp2_loop"), true); 
+	BOOST_REQUIRE_EQUAL(testdir->remove("largefile_with_more_than_60_chars_01234567890123456789012345678901234567890123456789012345678901234567890123456789"), true); 
+	BOOST_REQUIRE_EQUAL(tmp2->remove("testdir"), true); //testdir is empty now
+	BOOST_REQUIRE_EQUAL(ext2::find_inode(root, "/tmp2/testdir"), 0); 
+
+	std::remove("remove_test.img");
+}
