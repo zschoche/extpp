@@ -102,7 +102,7 @@ template <typename Filesystem> class inode : public fs_data<Filesystem, detail::
 						// determine the offset of the right doubly indirect block inside the triply indirect block
 						// every entry of a triply indirect bloc krefers to id_per_block^2 (eg 65536 for 1KiB) blocks
 						uint32_t doubly_indirect_block_index = (block_index - idp2_cut) / (id_per_block * id_per_block);
-						uint32_t singly_indirect_block_index = ((block_index - idp2_cut)) / (id_per_block);
+						uint32_t singly_indirect_block_index = ((block_index - idp2_cut) / (id_per_block)) % id_per_block;
 						block_index = (block_index - idp2_cut) % id_per_block;
 
 						uint32_t doubly_indirect_block;
@@ -192,7 +192,7 @@ template <typename Filesystem> class inode : public fs_data<Filesystem, detail::
 					if (block_index < idp3_cut) {
 
 						uint32_t doubly_indirect_block_index = (block_index - idp2_cut) / (id_per_block * id_per_block);
-						uint32_t singly_indirect_block_index = (block_index - idp2_cut) / id_per_block;
+						uint32_t singly_indirect_block_index = ((block_index - idp2_cut) / id_per_block) % id_per_block;
 						block_index = (block_index -idp2_cut) % id_per_block;
 
 						auto triply_indirect_block_id = this->data.block_pointer_indirect[2];
