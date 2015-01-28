@@ -102,7 +102,7 @@ template <typename Filesystem> class inode : public fs_data<Filesystem, detail::
 						// determine the offset of the right doubly indirect block inside the triply indirect block
 						// every entry of a triply indirect bloc krefers to id_per_block^2 (eg 65536 for 1KiB) blocks
 						uint32_t doubly_indirect_block_index = (block_index - idp2_cut) / (id_per_block * id_per_block);
-						uint32_t singly_indirect_block_index = (block_index - idp2_cut) / (id_per_block);
+						uint32_t singly_indirect_block_index = ((block_index - idp2_cut)) / (id_per_block);
 						block_index = (block_index - idp2_cut) % id_per_block;
 
 						uint32_t doubly_indirect_block;
@@ -190,6 +190,42 @@ template <typename Filesystem> class inode : public fs_data<Filesystem, detail::
 					// TODO implement triply indirect block behaviour
 					auto idp3_cut = (id_per_block * id_per_block * id_per_block) + 12;
 					if (block_index < idp3_cut) {
+
+						uint32_t doubly_indirect_block_index = (block_index - idp2_cut) / (id_per_block * id_per_block);
+						uint32_t singly_indirect_block_index = (block_index - idp2_cut) / id_per_block;
+						block_index = (block_index -idp2_cut) % id_per_block;
+
+						auto triply_indirect_block_id = this->data.block_pointer_indirect[2];
+						uint32_t doubly_indirect_block_id;
+						uint32_t singly_indirect_block_id;
+		
+						if(triply_indirect_block_id == 0) {
+							//the block id is 0, therefore we need a triply, doubly and singly indirect block
+							triply_indirect_block_id = this->fs()->alloc_block(this->get_inode_block_id());
+							this->data.block_pointer_indirect[2] = triply_indirect_block_id;
+							this->save();
+
+							doubly_indirect_block_id = this->fs()->alloc_block(this->get_inode_block_id());
+							detail::write_to_device(*(this->fs()->device()), this->fs()->to_address(triply_indirect_block_id, 0),
+										 doubly_indirect_block_id);
+							
+							singly_indirect_block_id = this->fs()->alloc_block(this->get_inode_block_id());
+							detail::write_to_device(*(this->fs()->device()), this->fs()->to_address(doubly_indirect_block_id, 0),
+									singly_indirect_block_id);
+						} else {
+							//read doubly indirect block
+							detail::read_from_device(
+							    *(this->fs()->device()),
+						   	    this->fs()->to_address(triply_indirect_block_id, doubly_indirect_block_index * sizeof(uint32_t)),
+						   	    doubly_indirect_block_id);
+							//read singly indirect block
+							detail::read_from_device(
+							    *(this->fs()->device()),
+							    this->fs()->to_address(doubly_indirect_block_id, singly_indirect_block_index * sizeof(uint32_t)),
+							    singly_indirect_block_id);
+						}
+							detail::write_to_device(*(this->fs()->device()),
+								this->fs()->to_address(singly_indirect_block_index, block_index * sizeof(uint32_t)), block_id);	
 
 					} else {
 						throw "block index overflows the last block id of inode!";
