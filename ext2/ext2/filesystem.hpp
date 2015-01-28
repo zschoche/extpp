@@ -38,7 +38,7 @@ template <typename NotFoundError, typename BitmapVec> uint32_t alloc(BitmapVec &
 	uint32_t bg_index = bg_index_start;
 	uint32_t result;
 	do {
-		index = bitmaps[bg_index].find(false, related_block_id % elements_per_group); // TODO: respect reserved blocks
+		index = bitmaps[bg_index].find(false, related_block_id % elements_per_group); 
 		if (index != NOT_FOUND) {
 			result = (bg_index * elements_per_group) + index;
 			break;

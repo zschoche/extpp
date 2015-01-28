@@ -357,13 +357,13 @@ struct __attribute__((packed)) superblock {
 	opt_feature_flags features_opt;  // optional features present (features that are not required to read or write , but usually result in a performance
 					 // increase
 	req_feature_flags features_req;  // required features present (features that are required to be supported to read or write
-	readonly_feature_flags features_readonly; // features that if not supported, the volume must be mounted read-only //TODO make enum
+	readonly_feature_flags features_readonly; // features that if not supported, the volume must be mounted read-only 
 	uint32_t file_system_id[4];		  // file system ID (what is output by blkid)
       private:
 	char _volume_name[16];     // volume name (C-Style string: characters terminated by a 0 byte)
 	char _mount_path_last[64]; // path volume was last mounted to (C-style string: characters terminated by a 0 byte)
       public:
-	uint32_t compression_algorithm;  // compression algorithm used //TODO make enum
+	uint32_t compression_algorithm;  // compression algorithm used 
 	uint8_t file_preallocate_blocks; // number of blcoks to preallocate for files
 	uint8_t dir_preallocate_blocks;  // number of blcoks to preallocate for directories
 	uint16_t padding_bytes1;	 // unused
@@ -371,7 +371,6 @@ struct __attribute__((packed)) superblock {
 	uint32_t journal_inode;		 // journal inode
 	uint32_t journal_device;	 // journal device
 	uint32_t orphan_list_head;       // head of orphan inode lsit
-	// TODO osdev.org says (unused) for bytes 236 to 1023 here, what to do?
 
 	const boost::string_ref volume_name() const { return boost::string_ref(_volume_name); }
 
