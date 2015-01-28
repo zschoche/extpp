@@ -154,7 +154,7 @@ template <typename Filesystem> class inode : public fs_data<Filesystem, detail::
 				detail::write_to_device(*(this->fs()->device()), this->fs()->to_address(bpi_id, block_index * sizeof(uint32_t)), block_id);
 			} else {
 
-				auto idp2_cut = (id_per_block * id_per_block) + 12;
+				auto idp2_cut = (id_per_block * id_per_block) + idp1_cut;
 				if (block_index < idp2_cut) {
 
 					// determine the offset of the right singly indirect block inside the doubly indirect block
@@ -188,7 +188,7 @@ template <typename Filesystem> class inode : public fs_data<Filesystem, detail::
 				} else {
 
 					// TODO implement triply indirect block behaviour
-					auto idp3_cut = (id_per_block * id_per_block * id_per_block) + 12;
+					auto idp3_cut = (id_per_block * id_per_block * id_per_block) + idp2_cut;
 					if (block_index < idp3_cut) {
 
 						uint32_t doubly_indirect_block_index = (block_index - idp2_cut) / (id_per_block * id_per_block);
