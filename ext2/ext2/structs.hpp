@@ -8,6 +8,7 @@
 
 #include <boost/utility/string_ref.hpp>
 #include <string>
+#include <cstring>
 #include <cmath>
 
 namespace ext2 {

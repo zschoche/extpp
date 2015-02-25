@@ -23,7 +23,7 @@ struct path {
 };
 
 inline path path_from_string(const std::string &p) {
-	path result{p};
+	path result{ p, path::vec_type() };
 	boost::split(result.vec, result.str, [](auto c) { return c == '/'; });
 	result.vec.erase(std::remove(result.vec.begin(), result.vec.end(), ""), result.vec.end());
 	return result;
@@ -66,7 +66,7 @@ template <typename BitmapVec> void free(uint32_t id, BitmapVec &bitmaps, uint32_
 /*
  * increments the hardlink counter of given inode and peform inode.save()
  */
-template <typename Inode> detail::directory_entry create_directory_entry(std::string name, uint32_t inodeid, Inode &inode) {
+template <typename Inode> detail::directory_entry create_directory_entry(const std::string& name, uint32_t inodeid, Inode &inode) {
 	detail::directory_entry result;
 	result.inode_id = inodeid;
 	result.name_size = name.size();
@@ -88,7 +88,7 @@ template <typename Inode> detail::directory_entry create_directory_entry(std::st
 	} else {
 		result.type = detail::directory_entry_type::unknown_type;
 	}
-	result.name = std::move(name);
+	result.name = name;
 	inode.data.count_hard_link++;
 	inode.save();
 	return result;
