@@ -9,6 +9,7 @@
 #include "device_io.hpp"
 #include "error.hpp"
 #include <array>
+#include <sstream>
 
 namespace ext2 {
 

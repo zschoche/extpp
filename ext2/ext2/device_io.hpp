@@ -7,6 +7,7 @@
 #define __DEVICE_IO_HPP__
 
 #include "structs.hpp"
+#include <vector>
 
 namespace ext2 {
 namespace detail {
