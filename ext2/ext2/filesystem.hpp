@@ -23,7 +23,7 @@ struct path {
 };
 
 inline path path_from_string(const std::string &p) {
-	path result{ p, path::vec_type() };
+	path result{p, path::vec_type()};
 	boost::split(result.vec, result.str, [](auto c) { return c == '/'; });
 	result.vec.erase(std::remove(result.vec.begin(), result.vec.end(), ""), result.vec.end());
 	return result;
@@ -66,7 +66,7 @@ template <typename BitmapVec> void free(uint32_t id, BitmapVec &bitmaps, uint32_
 /*
  * increments the hardlink counter of given inode and peform inode.save()
  */
-template <typename Inode> detail::directory_entry create_directory_entry(const std::string& name, uint32_t inodeid, Inode &inode) {
+template <typename Inode> detail::directory_entry create_directory_entry(const std::string &name, uint32_t inodeid, Inode &inode) {
 	detail::directory_entry result;
 	result.inode_id = inodeid;
 	result.name_size = name.size();
@@ -109,19 +109,23 @@ template <typename Device> struct filesystem {
 
 	void load() {
 		super_block.load();
-		blocksize = super_block.data.block_size();
-		gd_table = read_group_descriptor_table(super_block);
-		block_bitmaps.reserve(gd_table.size());
-		inode_bitmaps.reserve(gd_table.size());
-		for (auto &item : gd_table) {
-			bitmap<device_type> bbitmap(device(), to_address(item.data.address_block_bitmap, 0), super_block.data.blocks_per_group);
-			bitmap<device_type> ibitmap(device(), to_address(item.data.address_inode_bitmap, 0), super_block.data.inodes_per_group);
-			bbitmap.load();
-			ibitmap.load();
-			block_bitmaps.push_back(std::move(bbitmap));
-			inode_bitmaps.push_back(std::move(ibitmap));
+		if (this->is_magic_number_ok()) {
+			blocksize = super_block.data.block_size();
+			gd_table = read_group_descriptor_table(super_block);
+			block_bitmaps.reserve(gd_table.size());
+			inode_bitmaps.reserve(gd_table.size());
+			for (auto &item : gd_table) {
+				bitmap<device_type> bbitmap(device(), to_address(item.data.address_block_bitmap, 0), super_block.data.blocks_per_group);
+				bitmap<device_type> ibitmap(device(), to_address(item.data.address_inode_bitmap, 0), super_block.data.inodes_per_group);
+				bbitmap.load();
+				ibitmap.load();
+				block_bitmaps.push_back(std::move(bbitmap));
+				inode_bitmaps.push_back(std::move(ibitmap));
+			}
 		}
 	}
+
+	bool is_magic_number_ok() const { return super_block.data.ext2_magic_number == 0xef53; }
 
 	inode_type get_inode(uint32_t inodeid) {
 		auto block_group_id = (inodeid - 1) / super_block.data.inodes_per_group;
@@ -133,8 +137,19 @@ template <typename Device> struct filesystem {
 		result.load();
 		return result;
 	}
+	const inode_type get_inode(uint32_t inodeid) const {
+		auto block_group_id = (inodeid - 1) / super_block.data.inodes_per_group;
+		auto index = (inodeid - 1) % super_block.data.inodes_per_group;
+		auto block_id = (index * super_block.data.inode_size) / block_size();
+		auto block_offset = (index * super_block.data.inode_size) - (block_id * block_size());
+		block_id += gd_table[block_group_id].data.address_inode_table;
+		inode_type result(const_cast<filesystem<Device>*>(this), to_address(block_id, block_offset));
+		result.load();
+		return result;
+	}
 
 	inode_type get_root() { return get_inode(2); }
+	const inode_type get_root() const { return get_inode(2); }
 
 	/* returns a block id in the block group if related_block_id */
 	uint32_t alloc_block(uint32_t related_block_id = 1) {
@@ -194,7 +209,7 @@ template <typename Device> struct filesystem {
 			auto *bitmap = &block_bitmaps[i];
 			auto first = 0;
 			bool last = false;
-			for (auto k = 0u; k < bitmap->size(); k++) {
+			for (auto k = 0u; k < bitmap->count(); k++) {
 				auto val = bitmap->get(k);
 				if (val == true && last == false) {
 					first = (i * super_block.data.blocks_per_group) + k;
@@ -207,7 +222,7 @@ template <typename Device> struct filesystem {
 			bitmap = &inode_bitmaps[i];
 			first = 0;
 			last = false;
-			for (auto k = 0u; k < bitmap->size(); k++) {
+			for (auto k = 0u; k < bitmap->count(); k++) {
 				auto val = bitmap->get(k);
 				if (val == true && last == false) {
 					first = i * super_block.data.inodes_per_group + k;
@@ -253,8 +268,8 @@ template <typename Device> struct filesystem {
 		auto backup = [&](auto i) -> bool {
 			if (i < gd_table.size()) {
 				auto blockid = (i * super_block.data.blocks_per_group) + 1;
-				//std::cout << "write to" << sb_addr << std::endl;
-				//std::cout << "write to" << sb_addr + (super_block.size() / this->block_size()) + 1 << std::endl;
+				// std::cout << "write to" << sb_addr << std::endl;
+				// std::cout << "write to" << sb_addr + (super_block.size() / this->block_size()) + 1 << std::endl;
 				super_block.save(this->to_address(blockid, 0));
 				write_vector(gd_table, this->to_address(blockid + (super_block.size() / this->block_size()) + 1, 0));
 				return true;

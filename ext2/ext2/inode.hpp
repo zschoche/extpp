@@ -398,9 +398,10 @@ template <typename Filesystem> struct symbolic_link : inode<Filesystem> {
 	}
 };
 
+
 template <typename Filesystem> struct directory : inode<Filesystem> {
 
-	directory_entry_list read_entrys() {
+	directory_entry_list read_entrys() const {
 		auto offset = 0u;
 		directory_entry_list result;
 		result.reserve(8);
@@ -446,14 +447,14 @@ template <typename Filesystem> struct directory : inode<Filesystem> {
 	 * returns false, if the given name is equal to ".." or "." and if the given name is a directory and not empty.
 	 */
 	bool remove(const std::string &name, directory_entry_list &entrys) {
-		if(name == ".." || name == ".")
+		if (name == ".." || name == ".")
 			return false;
 
 		auto iter = std::find_if(entrys.begin(), entrys.end(), [&name](auto &e) { return e.name == name; });
 		if (iter != entrys.end()) {
 			auto inode = this->fs()->get_inode(iter->inode_id);
 			if (auto *dir = to_directory(&inode)) {
-				if(dir->read_entrys().size() > 2) {
+				if (dir->read_entrys().size() > 2) {
 					return false;
 				}
 			}
@@ -493,9 +494,25 @@ template <typename Filesystem> directory<Filesystem> &operator<<(directory<Files
 
 } /* namespace inodes */
 
+auto find_entry_by_name(const directory_entry_list& entrys, const std::string& name) {
+	return std::find_if(entrys.begin(), entrys.end(), [&name] (const auto& e) { return e.name == name; });
+}
+
+template <typename Filesystem> const inodes::directory<Filesystem> *to_directory(const inode<Filesystem> *from) {
+	if (from->is_directory())
+		return static_cast<const inodes::directory<Filesystem> *>(from);
+	else
+		return nullptr;
+}
 template <typename Filesystem> inodes::directory<Filesystem> *to_directory(inode<Filesystem> *from) {
 	if (from->is_directory())
 		return static_cast<inodes::directory<Filesystem> *>(from);
+	else
+		return nullptr;
+}
+template <typename Filesystem> const inodes::file<Filesystem> *to_file(const inode<Filesystem> *from) {
+	if (from->is_regular_file())
+		return static_cast<const inodes::file<Filesystem> *>(from);
 	else
 		return nullptr;
 }
@@ -506,6 +523,12 @@ template <typename Filesystem> inodes::file<Filesystem> *to_file(inode<Filesyste
 		return nullptr;
 }
 
+template <typename Filesystem> const inodes::symbolic_link<Filesystem> *to_symbolic_link(const inode<Filesystem> *from) {
+	if (from->is_symbolic_link())
+		return static_cast<const inodes::symbolic_link<Filesystem> *>(from);
+	else
+		return nullptr;
+}
 template <typename Filesystem> inodes::symbolic_link<Filesystem> *to_symbolic_link(inode<Filesystem> *from) {
 	if (from->is_symbolic_link())
 		return static_cast<inodes::symbolic_link<Filesystem> *>(from);

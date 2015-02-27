@@ -31,7 +31,7 @@ template <typename T, bool VISIT_DOT_AND_DOTDOT = false> struct visitor {
 	template <typename Inode> ops visit(Inode &inode) {
 
 		ops result = explore;
-		if (auto *dir = to_directory(&inode)) {
+		if (const auto *dir = to_directory(&inode)) {
 			auto list = dir->read_entrys();
 			for (auto entry : list) {
 				if (VISIT_DOT_AND_DOTDOT) {
@@ -142,7 +142,7 @@ struct finder : visitor<finder<Filesystem>, true> {
 
 } /* namespace visitors */
 
-template <typename OStream, typename Inode> OStream &print(OStream &os, Inode &inode) {
+template <typename OStream, typename Inode> OStream &print(OStream &os, const Inode& inode) {
 
 	visitors::printer<OStream> p(os);
 	p.visit(inode);
