@@ -383,6 +383,19 @@ BOOST_AUTO_TEST_CASE(path_4_test) {
 	}
 }
 
+BOOST_AUTO_TEST_CASE(path_5_test) {
+	std::string str = "/";
+	ext2::path p = ext2::path_from_string(str);
+	std::vector<std::string> v = { };
+	BOOST_REQUIRE_EQUAL(p.vec.size(), 0);
+}
+
+BOOST_AUTO_TEST_CASE(path_6_test) {
+	std::string str = "///////";
+	ext2::path p = ext2::path_from_string(str);
+	std::vector<std::string> v = { };
+	BOOST_REQUIRE_EQUAL(p.vec.size(), 0);
+}
 
 BOOST_AUTO_TEST_CASE(find_file_test) {
 	host_node image("image.img", 1024 * 1024 * 10);
