@@ -8,6 +8,7 @@
 
 #include "structs.hpp"
 #include <vector>
+#include <array>
 
 namespace ext2 {
 namespace detail {
@@ -18,6 +19,36 @@ template <typename Device, typename T> void write_to_device(Device &device, uint
 template <typename Device, typename T> void read_from_device(Device &device, uint64_t offset, T &value, uint64_t length = sizeof(T)) {
 	device.read(offset, reinterpret_cast<char *>(&value), length);
 }
+
+template <typename Device> void zeroing_device(Device &device, uint64_t offset, uint64_t length) {
+	std::array<char, 256> z;
+	std::memset(z.data(), 0, z.size());
+	while (length > 0) {
+		uint64_t len = std::min<uint64_t>(z.size(), length);
+		device.write(offset, z.data(), len);
+		length -= len;
+		offset += len;
+	}
+}
+
+template <typename Device> struct device_stream {
+
+	device_stream(Device *d, uint32_t offset = 0) : d(d), offset(offset) {}
+
+	void write(const char *buffer, uint64_t size) {
+		d->write(offset, buffer, size);
+		offset += size;
+	}
+
+	void read(char *buffer, uint64_t size) const {
+		d->read(offset, buffer, size);
+		offset += size;
+	}
+
+      private:
+	Device *d;
+	uint32_t offset;
+};
 
 } /* namespace detail */
 
@@ -66,10 +97,17 @@ template <typename Device> class dynamic_block_data {
 	bool empty() const { return _data.empty(); }
 	void set_size(uint64_t size) { _data.resize(size); }
 };
-template <typename Device> class bitmap : public dynamic_block_data<Device> {
-	public:
+template <typename Device> class bitmap : dynamic_block_data<Device> {
+	uint64_t _count;
 
-	bitmap(Device *d = nullptr, uint64_t offset = 0, uint64_t _size = 0) : dynamic_block_data<Device>(d, offset, _size) {}
+      public:
+	bitmap(Device *d = nullptr, uint64_t offset = 0, uint64_t _count = 0) : dynamic_block_data<Device>(d, offset, _count / 8), _count(_count) {}
+
+	inline uint64_t count() const { return _count; }
+
+	void load() { dynamic_block_data<Device>::load(); }
+
+	void save() { dynamic_block_data<Device>::save(); }
 
 	bool get(uint64_t index) const {
 		auto byte = index / 8;
@@ -95,7 +133,7 @@ template <typename Device> class bitmap : public dynamic_block_data<Device> {
 		do {
 			if (get(offset) == bit)
 				return offset;
-			if (++offset == this->size())
+			if (++offset == this->count())
 				offset = 0;
 		} while (offset != start_offset);
 		return -1;
@@ -148,7 +186,6 @@ template <typename Superblock> group_descriptor_table<typename Superblock::devic
 	return read_vector<typename group_descriptor_table<typename Superblock::device_type>::value_type>(*superblock.device(), pos,
 													  superblock.data.block_group_count());
 }
-
 
 } /* namespace ext2 */
 #endif /* __DEVICE_IO_HPP__ */
