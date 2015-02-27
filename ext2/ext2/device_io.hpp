@@ -123,7 +123,7 @@ template <typename Device> class bitmap : dynamic_block_data<Device> {
 		if (b) {
 			this->data()[byte] = this->data()[byte] | mask;
 		} else {
-			mask = !mask;
+			mask = ~mask;
 			this->data()[byte] = this->data()[byte] & mask;
 		}
 	}
