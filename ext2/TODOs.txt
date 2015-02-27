@@ -1,7 +1,7 @@
 Viele Sachen sind einfach im Code mit //TODO gekennzeichnet.
 
 
-- Sehr große Datein können nicht gelesen werden (Indirekte blöcke 2,3)
-- Sehr große Datein können nicht geschrieben werden (Indirekte blöcke 2,3)
+- Sehr große Datein können nicht gelesen werden (Indirekte blöcke 2,3) (Fertig, es gibt aber keinen test)
+- Sehr große Datein können nicht geschrieben werden (Indirekte blöcke 2,3) (Fertig, es gibt aber keinen test)
 
 ? rechte
