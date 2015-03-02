@@ -50,6 +50,20 @@ template <typename Device> struct device_stream {
 	uint32_t offset;
 };
 
+template<typename Device> device_stream<Device>& operator<<(device_stream<Device>& os, const std::string& str) {
+	os.write(str.c_str(), str.size());
+	return os;
+}
+
+template<typename Device> device_stream<Device>& operator<<(device_stream<Device>& os, int value) {
+	os << std::to_string(value);
+	return os;
+}
+
+template <typename Device> device_stream<Device> get_device_stream(Device* device, uint32_t offset = 0) {
+	return device_stream<Device>(device, offset);
+}
+
 } /* namespace detail */
 
 template <typename Device, typename Block> class block_data {

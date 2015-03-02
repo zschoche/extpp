@@ -44,10 +44,11 @@ template <typename Filesystem> class inode : public fs_data<Filesystem, detail::
 	typedef Filesystem fs_type;
 
       private:
-	uint32_t get_indirect_block(uint32_t block, uint32_t index, uint32_t ids_per_block) const {
-		if(index > ids_per_block) {
-			index = index / ids_per_block;
-			block = this->get_indirect_block(block, index, ids_per_block);
+	uint32_t get_indirect_block(uint32_t block, uint32_t index, uint32_t ids_per_block, int count) const {
+		if(count > 0) {
+			//index = index / ids_per_block;
+			--count;
+			block = this->get_indirect_block(block, index / ids_per_block, ids_per_block, count);
 			index = index % ids_per_block;
 		} 
 
@@ -69,26 +70,31 @@ template <typename Filesystem> class inode : public fs_data<Filesystem, detail::
 
 			uint32_t block = 0;
 			uint32_t index = 0;
+			int count = 0;
 			if(block_index < idp1_cut) {
 				block = this->data.block_pointer_indirect[0];
+				count = 0;
 				index = block_index - 12;
 			} else if( block_index < idp2_cut) {
 				block = this->data.block_pointer_indirect[1];
+				count = 1;
 				index = block_index - idp1_cut;
 			} else if(block_index < idp3_cut) {
 				block = this->data.block_pointer_indirect[2];
+				count = 2;
 				index = block_index - idp2_cut;
 			} else {
 				throw error::out_of_range_error();
 			}
-			return get_indirect_block(block, index, id_per_block);
+			return get_indirect_block(block, index, id_per_block, count);
 		}
 	}
 
-	uint32_t get_or_create_indirect_block(uint32_t block, uint32_t index, uint32_t ids_per_block) {
-		if(index > ids_per_block) {
-			index = index / ids_per_block;
-			block = this->get_or_create_indirect_block(block, index, ids_per_block);
+	uint32_t get_or_create_indirect_block(uint32_t block, uint32_t index, uint32_t ids_per_block, int count) {
+		if(count > 0) {
+			//index = index / ids_per_block;
+			--count;
+			block = this->get_or_create_indirect_block(block, index / ids_per_block, ids_per_block, count);
 			index = index % ids_per_block;
 
 			uint32_t result;
@@ -118,6 +124,7 @@ template <typename Filesystem> class inode : public fs_data<Filesystem, detail::
 
 			uint32_t block = 0;
 			uint32_t index = 0;
+			int count = 0;
 			if(block_index < idp1_cut) {
 				if(this->data.block_pointer_indirect[0] == 0) {
 					block = this->fs()->alloc_block(this->get_inode_block_id());
@@ -127,6 +134,7 @@ template <typename Filesystem> class inode : public fs_data<Filesystem, detail::
 				} else {
 					block = this->data.block_pointer_indirect[0];
 				}
+				count = 0;
 				index = block_index - 12;
 
 			} else if( block_index < idp2_cut) {
@@ -138,6 +146,7 @@ template <typename Filesystem> class inode : public fs_data<Filesystem, detail::
 				} else {
 					block = this->data.block_pointer_indirect[1];
 				}
+				count = 1;
 				index = block_index - idp1_cut;
 
 			} else if(block_index < idp3_cut) {
@@ -149,15 +158,17 @@ template <typename Filesystem> class inode : public fs_data<Filesystem, detail::
 				} else {
 					block = this->data.block_pointer_indirect[2];
 				}
+				count = 2;
 				index = block_index - idp2_cut;
 
 			} else {
 				throw error::out_of_range_error();
 			}
 
-			if(index > id_per_block) {
-				index = index / id_per_block;
-				block = this->get_or_create_indirect_block(block, index, id_per_block);
+			if(count > 0) {
+				//index = index / id_per_block;
+				//--count;
+				block = this->get_or_create_indirect_block(block, index / id_per_block, id_per_block, count);
 				index = index % id_per_block;
 			}
 			detail::write_to_device(*(this->fs()->device()), this->fs()->to_address(block, index * sizeof(uint32_t)), new_block_id);	
@@ -200,15 +211,16 @@ template <typename Filesystem> class inode : public fs_data<Filesystem, detail::
 				// the file is empty
 				block_id = this->fs()->alloc_block();
 				set_block_id(block_index_start, block_id);
+
 			}
 
+			
 			while (block_index_start < block_index_end) {
 				block_id = this->fs()->alloc_block(block_id);
 				++block_index_start;
 				set_block_id(block_index_start, block_id);
 			}
 		}
-
 		this->save();
 	}
 
