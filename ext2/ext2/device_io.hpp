@@ -9,6 +9,7 @@
 #include "structs.hpp"
 #include <vector>
 #include <array>
+#include <sstream>
 
 namespace ext2 {
 namespace detail {
@@ -56,7 +57,9 @@ template<typename Device> device_stream<Device>& operator<<(device_stream<Device
 }
 
 template<typename Device> device_stream<Device>& operator<<(device_stream<Device>& os, int value) {
-	os << std::to_string(value);
+	std::stringstream ss;
+	ss << value;
+	os << ss.str();
 	return os;
 }
 
