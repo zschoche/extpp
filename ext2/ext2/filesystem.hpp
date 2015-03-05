@@ -102,7 +102,7 @@ template <typename Device> struct filesystem {
 	typedef inodes::symbolic_link<filesystem<Device> > symbolic_link_type;
 	typedef group_descriptor_table<Device> gd_table_type;
 
-	filesystem(Device &d, uint64_t superblock_offset = 1024) : super_block(&d, superblock_offset) {}
+	filesystem(Device &d, uint64_t disk_start = 0) : disk_start(disk_start),super_block(&d, disk_start + 1024) {}
 
 	inline device_type *device() { return super_block.device(); }
 	inline const device_type *device() const { return super_block.device(); }
@@ -196,7 +196,7 @@ template <typename Device> struct filesystem {
 		super_block.save();
 	}
 
-	inline uint64_t to_address(uint32_t blockid, uint32_t block_offset) const { return (blockid * block_size()) + block_offset; }
+	inline uint64_t to_address(uint32_t blockid, uint32_t block_offset) const { return disk_start + (blockid * block_size()) + block_offset; }
 	inline bool large_files() const { return super_block.data.large_files(); }
 	inline uint32_t block_size() const { return blocksize; }
 	// inline uint32_t blocks_per_group() const { return super_block.data.blocks_per_group; }
@@ -293,6 +293,7 @@ template <typename Device> struct filesystem {
 	}
 
       private:
+	uint64_t disk_start;
 	superblock<Device> super_block;
 	gd_table_type gd_table;
 	std::vector<bitmap<device_type> > block_bitmaps;
@@ -336,8 +337,8 @@ template <typename Device> struct filesystem {
 	}
 };
 
-template <typename Device> filesystem<Device> read_filesystem(Device &d) {
-	filesystem<Device> result(d);
+template <typename Device> filesystem<Device> read_filesystem(Device &d, uint32_t partition_offset = 0) {
+	filesystem<Device> result(d, partition_offset);
 	result.load();
 	return result;
 }
