@@ -28,7 +28,7 @@ template <typename T, bool VISIT_DOT_AND_DOTDOT = false> struct visitor {
 
 	inline const T *derived() const { return static_cast<const T *>(this); }
 
-	template <typename Inode> ops visit(Inode &inode) {
+	template <typename Inode> ops visit(const Inode &inode) {
 
 		ops result = explore;
 		if (const auto *dir = to_directory(&inode)) {
@@ -149,11 +149,14 @@ template <typename OStream, typename Inode> OStream &print(OStream &os, const In
 	return os;
 }
 
-template <typename Inode> uint32_t find_inode(Inode &inode, const std::string &path, bool hide_symlink = true) {
-	visitors::finder<typename Inode::fs_type> f(path_from_string(path));
+template <typename Inode> uint32_t find_inode(Inode &inode, const ext2::path &path, bool hide_symlink = true) {
+	visitors::finder<typename Inode::fs_type> f(path);
 	f.hide_symlink = hide_symlink;
 	f.visit(inode);
 	return f.inode_id;
+}
+template <typename Inode> uint32_t find_inode(Inode &inode, const std::string &path, bool hide_symlink = true) {
+	return find_inode(inode, path_from_string(path), hide_symlink);
 }
 
 } /* namespace ext2 */

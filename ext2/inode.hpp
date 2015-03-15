@@ -434,7 +434,7 @@ template <typename Filesystem> directory<Filesystem> &operator<<(directory<Files
 
 } /* namespace inodes */
 
-auto find_entry_by_name(const directory_entry_list& entrys, const std::string& name) {
+inline auto find_entry_by_name(const directory_entry_list& entrys, const std::string& name) {
 	return std::find_if(entrys.begin(), entrys.end(), [&name] (const auto& e) { return e.name == name; });
 }
 
