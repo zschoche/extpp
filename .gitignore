@@ -1,3 +1,3 @@
-iposix-toolchain
-build/
 *.swo
+Makefile
+
