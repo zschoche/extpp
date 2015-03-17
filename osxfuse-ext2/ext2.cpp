@@ -62,8 +62,8 @@ int fuse_readdir(const char *path_str, void *buf, fuse_fill_dir_t filler, off_t 
 	}
 	auto inode = fs->get_inode(inode_id);	
 	if(auto* d = ext2::to_directory(&inode)) {
-		auto entrys = d->read_entrys();
-		for(const auto& e : entrys) {
+		auto entries = d->read_entries();
+		for(const auto& e : entries) {
 			filler(buf, e.name.c_str(), NULL, 0);
 		}
 	} else {

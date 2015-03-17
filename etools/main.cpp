@@ -22,8 +22,8 @@ template <typename Dir> void copy_file(Dir *dir, const bfs::path &source) {
 	}
 
 	std::string filename = source.filename().string();
-	auto entrys = dir->read_entrys();
-	if(ext2::find_entry_by_name(entrys, filename) != entrys.end()) {
+	auto entries = dir->read_entries();
+	if(ext2::find_entry_by_name(entries, filename) != entries.end()) {
 		std::cerr << filename << " is already in the image.\n";
 		exit(1);
 	}
@@ -53,9 +53,9 @@ template <typename Dir> void copy_to_image(uint32_t inode_id, Dir *target_dir, c
 	for (bfs::directory_iterator dir_iter(source); dir_iter != end_iter; ++dir_iter) {
 
 		if (bfs::is_symlink(*dir_iter)) {
-			auto entrys = target_dir->read_entrys();
-			auto iter = ext2::find_entry_by_name(entrys, dir_iter->path().filename().string());
-			if (iter != entrys.end()) {
+			auto entries = target_dir->read_entries();
+			auto iter = ext2::find_entry_by_name(entries, dir_iter->path().filename().string());
+			if (iter != entries.end()) {
 				std::cout << "delete old version of: " << dir_iter->path() << std::endl;
 				if (!target_dir->fs()->get_inode(iter->inode_id).is_symbolic_link()) {
 					std::cerr << dir_iter->path() << " is not a file." << std::endl;
@@ -69,9 +69,9 @@ template <typename Dir> void copy_to_image(uint32_t inode_id, Dir *target_dir, c
 			*target_dir << entry;
 
 		} else if (bfs::is_directory(dir_iter->status())) {
-			auto entrys = target_dir->read_entrys();
-			auto iter = ext2::find_entry_by_name(entrys, dir_iter->path().filename().string());
-			if (iter != entrys.end()) {
+			auto entries = target_dir->read_entries();
+			auto iter = ext2::find_entry_by_name(entries, dir_iter->path().filename().string());
+			if (iter != entries.end()) {
 				std::cout << "found: " << dir_iter->path() << std::endl;
 				auto inode = target_dir->fs()->get_inode(iter->inode_id);
 				if (auto *d = ext2::to_directory(&inode)) {
@@ -91,9 +91,9 @@ template <typename Dir> void copy_to_image(uint32_t inode_id, Dir *target_dir, c
 			}
 
 		} else if (bfs::is_regular_file(dir_iter->status())) {
-			auto entrys = target_dir->read_entrys();
-			auto iter = ext2::find_entry_by_name(entrys, dir_iter->path().filename().string());
-			if (iter != entrys.end()) {
+			auto entries = target_dir->read_entries();
+			auto iter = ext2::find_entry_by_name(entries, dir_iter->path().filename().string());
+			if (iter != entries.end()) {
 				std::cout << "delete old version of: " << dir_iter->path() << std::endl;
 				if (!target_dir->fs()->get_inode(iter->inode_id).is_regular_file()) {
 					std::cerr << dir_iter->path() << " is not a file." << std::endl;
@@ -139,8 +139,8 @@ int main(int ac, char *av[]) {
 				("read-file", po::value<std::string>(), "prints a file to cout")
 				("dump", "creates a directory")
 				("copy-files,c", po::value<std::vector<std::string>>()->composing(), "copys a list of files into target-dir");
-		/*("uid", po::value<int>(&uid)->default_value(0), "uid for all entrys")
-		("gid", po::value<int>(&gid)->default_value(0), "gid for all entrys");*/
+		/*("uid", po::value<int>(&uid)->default_value(0), "uid for all entries")
+		("gid", po::value<int>(&gid)->default_value(0), "gid for all entries");*/
 
 		po::positional_options_description p;
 		p.add("copy-files", -1);
@@ -196,8 +196,8 @@ int main(int ac, char *av[]) {
 				}
 				auto inode = filesystem.get_inode(inodeid);
 				if (auto *d = ext2::to_directory(&inode)) {
-					auto entrys = d->read_entrys();
-					if (ext2::find_entry_by_name(entrys, dirname) != entrys.end()) {
+					auto entries = d->read_entries();
+					if (ext2::find_entry_by_name(entries, dirname) != entries.end()) {
 						std::cerr << path_str << " already exists.\n";
 						return 1;
 					}

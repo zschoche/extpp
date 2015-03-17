@@ -236,7 +236,7 @@ BOOST_AUTO_TEST_CASE(read_root_content_test) {
 
 	BOOST_REQUIRE_EQUAL(root.get_inode_block_id(), 44);
 	if (auto *dir = ext2::to_directory(&root)) {
-		ext2::directory_entry_list list = dir->read_entrys();
+		ext2::directory_entry_list list = dir->read_entries();
 		/*
 		for(auto& item : list) {
 			std::cout << item.name << std::endl;
@@ -277,10 +277,10 @@ BOOST_AUTO_TEST_CASE(read_testfile_test) {
 	auto filesystem = ext2::read_filesystem(image);
 	auto root = filesystem.get_root();
 	if (auto *dir = ext2::to_directory(&root)) {
-		auto entrys = dir->read_entrys();
+		auto entries = dir->read_entries();
 
-		auto testfile = std::find_if(entrys.begin(), entrys.end(), [](auto &item) -> bool { return item.name == "testfile"; });
-		BOOST_CHECK(testfile != entrys.end());
+		auto testfile = std::find_if(entries.begin(), entries.end(), [](auto &item) -> bool { return item.name == "testfile"; });
+		BOOST_CHECK(testfile != entries.end());
 
 		auto inode = filesystem.get_inode(testfile->inode_id);
 		if (auto *file = ext2::to_file(&inode)) {
@@ -795,8 +795,8 @@ BOOST_AUTO_TEST_CASE(ext_create_file_test) {
 	if(auto* dir = ext2::to_directory(&root)) {
 		auto entry = ext2::create_directory_entry("new_file", id_file.first, id_file.second);
 		*dir << entry;
-		auto entrys = dir->read_entrys();
-		BOOST_CHECK(std::find_if(entrys.begin(), entrys.end(),[&] (auto& e) { return e.inode_id == id_file.first && e.name == "new_file"; }) != entrys.end());
+		auto entries = dir->read_entries();
+		BOOST_CHECK(std::find_if(entries.begin(), entries.end(),[&] (auto& e) { return e.inode_id == id_file.first && e.name == "new_file"; }) != entries.end());
 
 	} else {
 		BOOST_ERROR("root is not a directory");
@@ -821,8 +821,8 @@ BOOST_AUTO_TEST_CASE(ext_create_symlink_test) {
 	if(auto* dir = ext2::to_directory(&root)) {
 		auto entry = ext2::create_directory_entry("symlink", id_file.first, id_file.second);
 		*dir << entry;
-		auto entrys = dir->read_entrys();
-		BOOST_CHECK(std::find_if(entrys.begin(), entrys.end(),[&] (auto& e) { return e.inode_id == id_file.first && e.name == "symlink"; }) != entrys.end());
+		auto entries = dir->read_entries();
+		BOOST_CHECK(std::find_if(entries.begin(), entries.end(),[&] (auto& e) { return e.inode_id == id_file.first && e.name == "symlink"; }) != entries.end());
 		root.load();
 		uint32_t id1 = ext2::find_inode(root, "/symlink");
 		uint32_t id2 = ext2::find_inode(root, "/testfile");
@@ -852,8 +852,8 @@ BOOST_AUTO_TEST_CASE(ext_create_symlink_2_test) {
 	if(auto* dir = ext2::to_directory(&root)) {
 		auto entry = ext2::create_directory_entry("symlink", id_file.first, id_file.second);
 		*dir << entry;
-		auto entrys = dir->read_entrys();
-		BOOST_CHECK(std::find_if(entrys.begin(), entrys.end(),[&] (auto& e) { return e.inode_id == id_file.first && e.name == "symlink"; }) != entrys.end());
+		auto entries = dir->read_entries();
+		BOOST_CHECK(std::find_if(entries.begin(), entries.end(),[&] (auto& e) { return e.inode_id == id_file.first && e.name == "symlink"; }) != entries.end());
 		root.load();
 		uint32_t id1 = ext2::find_inode(root, "/symlink");
 		uint32_t id2 = ext2::find_inode(root, "/tmp2/testdir/largefile_with_more_than_60_chars_01234567890123456789012345678901234567890123456789012345678901234567890123456789");
@@ -882,8 +882,8 @@ BOOST_AUTO_TEST_CASE(ext_create_dir_test) {
 	if(auto* dir = ext2::to_directory(&root)) {
 		auto entry = ext2::create_directory_entry("new_dir", id_dir.first, id_dir.second);
 		*dir << entry;
-		auto entrys = dir->read_entrys();
-		BOOST_CHECK(std::find_if(entrys.begin(), entrys.end(),[&] (auto& e) { return e.inode_id == id_dir.first && e.name == "new_dir"; }) != entrys.end());
+		auto entries = dir->read_entries();
+		BOOST_CHECK(std::find_if(entries.begin(), entries.end(),[&] (auto& e) { return e.inode_id == id_dir.first && e.name == "new_dir"; }) != entries.end());
 		root.load();
 		uint32_t id1 = ext2::find_inode(root, "/new_dir");
 		uint32_t id2 = ext2::find_inode(root, "/new_dir/.");
@@ -893,12 +893,12 @@ BOOST_AUTO_TEST_CASE(ext_create_dir_test) {
 
 		auto inode = filesystem.get_inode(id1);
 		if(auto* dir = ext2::to_directory(&inode)) {
-			auto entrys = dir->read_entrys();
-			BOOST_REQUIRE_EQUAL(entrys.size(), 2);
-			BOOST_CHECK(entrys[0].name == ".");
-			BOOST_CHECK(entrys[0].inode_id == id_dir.first);
-			BOOST_CHECK(entrys[1].name == "..");
-			BOOST_CHECK(entrys[1].inode_id == 2);
+			auto entries = dir->read_entries();
+			BOOST_REQUIRE_EQUAL(entries.size(), 2);
+			BOOST_CHECK(entries[0].name == ".");
+			BOOST_CHECK(entries[0].inode_id == id_dir.first);
+			BOOST_CHECK(entries[1].name == "..");
+			BOOST_CHECK(entries[1].inode_id == 2);
 
 		} else {
 			BOOST_ERROR("this is not a directory");
@@ -1011,8 +1011,8 @@ BOOST_AUTO_TEST_CASE(remove_test) {
 	auto* tmp2 = ext2::to_directory(&inode);
 	BOOST_CHECK(tmp2 != nullptr);
 	BOOST_REQUIRE_EQUAL(tmp2->remove("testdir"), false); //testdir is not empty
-	auto entrys = tmp2->read_entrys();
-	auto testdirid = std::find_if(entrys.begin(), entrys.end(), [](auto& e) { return e.name == "testdir"; })->inode_id;
+	auto entries = tmp2->read_entries();
+	auto testdirid = std::find_if(entries.begin(), entries.end(), [](auto& e) { return e.name == "testdir"; })->inode_id;
 	BOOST_REQUIRE_EQUAL(testdirid, 16); 
 	auto testdir_inode = filesystem.get_inode(testdirid);
 	auto* testdir = ext2::to_directory(&testdir_inode);

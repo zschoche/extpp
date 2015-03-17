@@ -258,7 +258,7 @@ template <typename Device> struct filesystem {
 			directory_entry_list list;
 			list.push_back(detail::directory_entry{id_dir.first, 9, 1, detail::directory_entry_type::directory, "."});
 			list.push_back(detail::directory_entry{parent_directory, 10, 1, detail::directory_entry_type::directory, ".."});
-			dir->write_entrys(list);
+			dir->write_entries(list);
 		}
 		return id_dir;
 	}

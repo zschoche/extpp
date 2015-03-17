@@ -32,7 +32,7 @@ template <typename T, bool VISIT_DOT_AND_DOTDOT = false> struct visitor {
 
 		ops result = explore;
 		if (const auto *dir = to_directory(&inode)) {
-			auto list = dir->read_entrys();
+			auto list = dir->read_entries();
 			for (auto entry : list) {
 				if (VISIT_DOT_AND_DOTDOT) {
 					result = lookup(entry, inode);

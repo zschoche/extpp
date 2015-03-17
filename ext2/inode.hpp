@@ -341,7 +341,7 @@ template <typename Filesystem> struct symbolic_link : inode<Filesystem> {
 
 template <typename Filesystem> struct directory : inode<Filesystem> {
 
-	directory_entry_list read_entrys() const {
+	directory_entry_list read_entries() const {
 		auto offset = 0u;
 		directory_entry_list result;
 		result.reserve(8);
@@ -359,12 +359,12 @@ template <typename Filesystem> struct directory : inode<Filesystem> {
 		return result;
 	}
 
-	void write_entrys(directory_entry_list &entrys) {
+	void write_entries(directory_entry_list &entries) {
 		uint64_t offset = 0;
-		for (auto i = 0u; i < entrys.size(); i++) {
-			detail::directory_entry &e = entrys[i];
+		for (auto i = 0u; i < entries.size(); i++) {
+			detail::directory_entry &e = entries[i];
 			e.name_size = e.name.size();
-			if (i + 1 == entrys.size()) {
+			if (i + 1 == entries.size()) {
 				e.size = std::max<uint64_t>(8 + e.name_size, this->size() - offset);
 			} else {
 				e.size = 8 + e.name_size;
@@ -379,22 +379,22 @@ template <typename Filesystem> struct directory : inode<Filesystem> {
 	 * returns false, if the given name is equal to ".." or "." and if the given name is a directory and not empty.
 	 */
 	bool remove(const std::string &name) {
-		auto entrys = read_entrys();
-		return remove(name, entrys);
+		auto entries = read_entries();
+		return remove(name, entries);
 	}
 
 	/*
 	 * returns false, if the given name is equal to ".." or "." and if the given name is a directory and not empty.
 	 */
-	bool remove(const std::string &name, directory_entry_list &entrys) {
+	bool remove(const std::string &name, directory_entry_list &entries) {
 		if (name == ".." || name == ".")
 			return false;
 
-		auto iter = std::find_if(entrys.begin(), entrys.end(), [&name](auto &e) { return e.name == name; });
-		if (iter != entrys.end()) {
+		auto iter = std::find_if(entries.begin(), entries.end(), [&name](auto &e) { return e.name == name; });
+		if (iter != entries.end()) {
 			auto inode = this->fs()->get_inode(iter->inode_id);
 			if (auto *dir = to_directory(&inode)) {
-				if (dir->read_entrys().size() > 2) {
+				if (dir->read_entries().size() > 2) {
 					return false;
 				}
 			}
@@ -416,8 +416,8 @@ template <typename Filesystem> struct directory : inode<Filesystem> {
 				}
 				this->fs()->free_inode(iter->inode_id);
 			}
-			entrys.erase(iter);
-			write_entrys(entrys);
+			entries.erase(iter);
+			write_entries(entries);
 		}
 		return true;
 	}
@@ -426,16 +426,16 @@ template <typename Filesystem> struct directory : inode<Filesystem> {
 };
 
 template <typename Filesystem> directory<Filesystem> &operator<<(directory<Filesystem> &dir, const detail::directory_entry &e) {
-	auto entry_list = dir.read_entrys();
+	auto entry_list = dir.read_entries();
 	entry_list.push_back(e);
-	dir.write_entrys(entry_list);
+	dir.write_entries(entry_list);
 	return dir;
 }
 
 } /* namespace inodes */
 
-inline auto find_entry_by_name(const directory_entry_list& entrys, const std::string& name) {
-	return std::find_if(entrys.begin(), entrys.end(), [&name] (const auto& e) { return e.name == name; });
+inline auto find_entry_by_name(const directory_entry_list& entries, const std::string& name) {
+	return std::find_if(entries.begin(), entries.end(), [&name] (const auto& e) { return e.name == name; });
 }
 
 template <typename Filesystem> const inodes::directory<Filesystem> *to_directory(const inode<Filesystem> *from) {
