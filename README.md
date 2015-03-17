@@ -1,10 +1,5 @@
-# ext2
-This is our ext2 implementation.
-It will be generic. iposix will not be a necessary to use this library. Therefore the code is not in the iposix directory.
+## extpp - header-only, ext2 implementaion, C++14
 
+I've written this ext2 implementaion during semester 2014/2015. It was my final project in a bare bone operating system lecture.
 
-## testing
-
-During development, we will build userland programs on the host system to increase development speed and make use of the ext2 implementation of our host systems to verify our code(e.g. create a file with our implementation and read that file with the host system).
-
-
+Please be lenient with me I have implemented it short before the [hell week](http://www.urbandictionary.com/define.php?term=Hell+Week). Therefore, Inline documentation is really readly rare. I will give a short intoduction below.
