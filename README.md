@@ -54,3 +54,5 @@ Please notice that the variable ``root`` describes the life cycle of our inode.
  - (block_device)
  - (character device)
 - Everything in ./etools and ./osxfuse-ext2 is almost completely untested.
+- Detect and recover a broken file system
+- Bootstrap a file system
