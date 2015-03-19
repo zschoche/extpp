@@ -2,7 +2,7 @@
 
 I've written this ext2 implementation during the winter semester 2014/2015. It was my final project in a bare bone operating system lecture.
 
-Please be lenient with me I have implemented it short before the [hell week](http://www.urbandictionary.com/define.php?term=Hell+Week). Therefore, inline documentation is really rare. I will give a short introduction below.
+Please be lenient with me I have implemented it short before the [hell weeks](http://www.urbandictionary.com/define.php?term=Hell+Week). Therefore, inline documentation is really rare. I will give a short introduction below.
 
 ### Introduction
 First of all, there is a concept of a device:
