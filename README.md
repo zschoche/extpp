@@ -10,7 +10,7 @@ First of all, there is a concept of a device:
 ```cpp
 struct device {
 	void write(uint64_t offset, const char* buffer, uint64_t size);
-	void read(uint64_t offset, const char* buffer, uint64_t size);
+	void read(uint64_t offset, char* buffer, uint64_t size);
 };
 ```
 This is what you has to provide. Wherever you ext2 image is, you have to make it available with something that have the described ``write()`` and ``read()`` method. If it is a block device, then you may have a look into the ext2/block_device.hpp
